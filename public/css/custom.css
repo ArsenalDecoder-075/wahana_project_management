@@ -1,0 +1,293 @@
+.pagination .page-item {
+    margin-left: 0.5rem;
+}
+
+.pagination .page-item .page-link {
+    width: 32px;
+    height: 32px;
+    background: #e5e5e5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.pagination .page-item.active .page-link, .pagination .page-item:hover .page-link {
+    background: #4a6cf7;
+    color: #fff;
+}
+
+.radio-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.radio {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.radio input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.radio-mark {
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    position: relative;
+    margin-right: 10px;
+}
+
+.radio input:checked ~ .radio-mark {
+    border-color: #2196f3;
+    background-color: #2196f3;
+}
+
+/* New styles for the image and radio button container */
+.image-container {
+    display: flex;
+    align-items: center;
+}
+
+.image-container img {
+    display: block;
+    height: 6rem;
+    object-fit: cover; /* To maintain image aspect ratio */
+    border-radius: 50%; /* Round border for the image */
+    margin-right: 10px;
+}
+
+.radio-label {
+    font-size: 16px;
+    color: #000000;
+}
+
+/* Custom CSS for the ordered list */
+.card-body ol {
+    list-style: none; /* Remove default numbers */
+    counter-reset: custom-counter; /* Reset the counter */
+    padding-left: 1.5rem; /* Add spacing for custom numbers and dots */
+  }
+  
+  .card-body ol li {
+    position: relative; /* Required for positioning the number and dot */
+    counter-increment: custom-counter; /* Increment the counter */
+    margin-bottom: 0.5rem; /* Adjust spacing between items */
+  }
+  
+  .card-body ol li::before {
+    content: counter(custom-counter) "."; /* Use the counter as content followed by a dot */
+    position: absolute;
+    left: -1.5rem; /* Adjust the position of the number and dot */
+    font-size: 1rem; /* Adjust the size of the number and dot */
+    color: gray; /* Adjust the color of the number and dot */
+  }
+  
+  /* Circular Progress Bar Styles */
+.progress-circle {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    display: inline-block;
+}
+
+.progress-circle .progress-circle-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.progress-circle svg {
+    transform: rotate(-90deg);
+}
+
+.progress-circle svg circle {
+    fill: transparent;
+    stroke: #d1393a; /* Change the color as needed */
+    stroke-width: 10;
+}
+
+/* .bg-custom-image {
+  background-image: url('../background.webp'); 
+  background-size: cover;
+  background-position: center;
+} */
+
+.bg-red-wari {
+    background: #DC0000;
+}
+
+.bg-black-wari {
+    background: #322D2F;
+}
+
+.fs-8 {
+    font-size: 12px;
+}
+
+.floating-image {
+    position: fixed;
+    bottom: 10px; /* Adjust this value to change the distance from the bottom */
+    left: 10px; /* Adjust this value to change the distance from the left */
+    width: 1100px; /* Default width of the image */
+    height: auto; /* Let the height adjust proportionally to the width */
+    z-index: 1; /* Set a z-index value for the floating image */
+}
+
+@media screen and (min-width: 1600px) {
+    .floating-image {
+        width: 1366px; /* Adjust the width of the image for screens 1600px and above */
+    }
+}
+
+@media screen and (min-width: 1920px) {
+    .floating-image {
+        width: 1800px; /* Adjust the width of the image for screens 1920px and above */
+    }
+}
+
+.mb-6 {
+    margin-bottom: 70px;
+}
+
+@media screen and (min-width: 768px) {
+    .object-image {
+        position: relative;
+        z-index: 9999; /* Set a high z-index value */
+    }
+}
+/*------------------------------------------
+App Blade
+--------------------------------------------*/
+/* Fullscreen toggle styles */
+.fullscreen-toggle button {
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.fullscreen-toggle button:hover {
+    background-color: #e21a1a !important;
+    color: white !important;
+    transform: scale(1.1);
+}
+
+.fullscreen-toggle button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(226, 26, 26, 0.25);
+}
+
+/* Animation for icon transition */
+#fullscreen-icon {
+    transition: transform 0.3s ease;
+}
+
+.fullscreen-active #fullscreen-icon {
+    transform: rotate(45deg);
+}
+
+/* Password Warning Modal Styles */
+.modal-content.border-warning {
+    border: 2px solid #ffc107;
+}
+
+.modal-header.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+#passwordWarningModal .btn-warning {
+    background-color: #e0a800;
+    border-color: #e0a800;
+}
+
+#passwordWarningModal .btn-warning:hover {
+    background-color: #c69500;
+    border-color: #c69500;
+    transform: translateY(-1px);
+}
+
+/* Animation untuk ikon warning */
+@keyframes pulse-warning {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+#passwordWarningModal .fa-shield-alt {
+    animation: pulse-warning 2s infinite;
+}
+
+.mobile-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .mobile-stack {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .mobile-stack .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.additional-fields-compact {
+    border-left: 3px solid #e9ecef;
+    padding-left: 1rem;
+    margin-top: 0.75rem;
+}
+
+.field-toggle-compact {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.field-container-compact {
+    margin-bottom: 0.75rem;
+}
+
+.field-container-compact:last-child {
+    margin-bottom: 0;
+}
+
+.badge-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.title-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 576px) {
+    .title-header-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+}

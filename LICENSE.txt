@@ -1,0 +1,9 @@
+Internal Corporate Use License
+
+This software and its source code are provided for use within Wahanaartha Ritelindo (WARI). This software may not be distributed, sublicensed, or shared with individuals or entities outside of the Company without explicit written permission from the Company.
+
+The Company assumes no liability for any damages or issues arising from the use of this software. By using this software, you agree to abide by the internal policies and guidelines set forth by the Company.
+
+This license is valid as long as you are an employee or affiliate of the Company. Upon leaving the Company or discontinuing use of this software for Company purposes, you must delete all copies of the software.
+
+For questions or permissions regarding the use of this software, please contact thoriq.albar@wahanaartha.com

@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: laravel-app
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: local
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: laravel3
+      DB_USERNAME: root
+      DB_PASSWORD:
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8
+    container_name: laravel-db
+    environment:
+      MYSQL_ROOT_PASSWORD:
+      MYSQL_DATABASE: laravel3
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # phpmyadmin:
+  #   image: phpmyadmin
+  #   container_name: laravel-pma
+  #   ports:
+  #     - "8081:80"
+  #   environment:
+  #     PMA_HOST: db
+  #     PMA_USER: root
+  #     PMA_PASSWORD:
+  #   depends_on:
+  #     - db
+
+  # optional: Redis
+  redis:
+    image: redis:7
+    container_name: laravel-redis
+    ports:
+      - "6379:6379"
+
+  # # Mailpit
+  # mailpit:
+  #   image: axllent/mailpit
+  #   container_name: laravel-mailpit
+  #   ports:
+  #     - "8025:8025" # web UI
+  #     - "1025:1025" # SMTP
+
+volumes:
+  mysql_data:
