@@ -1,6 +1,10 @@
-# Project Name Documentation
+# Wahana Project Management
 
-Welcome to the documentation for Project Name. This document provides a comprehensive guide to understanding and using the features of the project.
+Wahana Project Management adalah aplikasi manajemen proyek berbasis web yang dirancang untuk menyederhanakan alur kerja tim, mulai dari perencanaan proyek hingga evaluasi hasil kerja. Platform ini melayani tiga peran utama: Admin yang mengelola akun pengguna dan hierarki organisasi, Manager yang bertanggung jawab membuat proyek, mendistribusikan tugas, serta memverifikasi hasil pekerjaan bawahan, dan Karyawan yang menerima tugas, mengunggah bukti pekerjaan (seperti gambar atau dokumen), serta menerima umpan balik untuk perbaikan. Sistem ini dilengkapi dengan fitur otentikasi, manajemen pengguna, dan dashboard monitoring untuk memantau progres proyek maupun kinerja individu secara real-time.
+
+Dalam penggunaannya, hierarki tim dibangun dengan struktur satu arah di mana satu karyawan hanya dapat berada di bawah satu manajer. Manager dapat membuat proyek utama yang dilengkapi dengan judul, deskripsi, deadline, dan status progres, lalu membaginya menjadi sub-proyek atau tugas-tugas spesifik. Setiap tugas memiliki bobot penilaian, prioritas (tinggi, sedang, rendah), dan status pengerjaan. Karyawan akan mengakses tugas yang diberikan, mengunggah hasil pekerjaan beserta catatan, dan mengirimkannya untuk direview. Manager kemudian dapat memberikan verifikasi dengan cara menerima, menolak, atau meminta revisi disertai feedback tertulis, sehingga proses kontrol kualitas pekerjaan berjalan dua arah secara transparan.
+
+Dari sisi teknis, sistem ini dibangun dengan memenuhi standar kebutuhan non-fungsional, seperti performa yang mampu melayani hingga 50 pengguna bersamaan dengan waktu respons di bawah 3 detik, keamanan password terenkripsi (hashing), serta ketersediaan backup database harian. Tampilan antarmuka dirancang responsif untuk desktop dan mobile agar memudahkan akses kapan saja. Dengan ruang lingkup yang mencakup manajemen pengguna, proyek, distribusi tugas, review, dan monitoring progres berbasis bobot tugas, Wahana Project Management menjadi solusi terpadu untuk meningkatkan produktivitas dan akuntabilitas tim dalam setiap tahapan pengerjaan proyek.
 
 ## Table of Contents
 - [Project Name Documentation](#project-name-documentation)
