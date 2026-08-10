@@ -2,11 +2,50 @@
 <title>Login</title>
 
 @section('content')
-    <div class="container py-5 mb-6 h-100 object-image">
-        <div class="row d-flex justify-content-center align-items-center h-100">
+<style>
+    /* Full page background */
+    body {
+        margin: 0;
+        padding: 0;
+        background-image: url('{{ asset('images/wpm_background.png') }}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        height: 100%;
+    }
+
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px);
+        border: none !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .card-body {
+        padding: 2.5rem !important;
+    }
+</style>
+
+<div class="login-container">
+    <div class="container">
+        <div class="row d-flex justify-content-center align-items-center">
             <div class="col-12 col-md-8 col-lg-6 col-xl-5">
                 <div class="card shadow-2-strong" style="border-radius: 1rem;">
                     <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <img src="{{ asset('images/logo/loginlogo.png') }}" alt="Logo" class="img-fluid" style="max-height: 80px;">
+                        </div>
 
                         <h1 class="mb-5 fw-bold">Sign in</h1>
 
@@ -62,4 +101,5 @@
             </div>
         </div>
     </div>
+</div>
 @endsection

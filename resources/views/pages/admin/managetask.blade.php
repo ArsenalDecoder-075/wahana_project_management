@@ -9,7 +9,7 @@
         <div class="row align-items-center">
             <div class="col-md-6">
                 <div class="title mb-30">
-                    <h2>Manajemen Tugas Proyek</h2>
+                    <h2>Manajemen Tugas</h2>
                 </div>
             </div>
             <div class="col-md-6">
@@ -27,26 +27,25 @@
         </div>
     </div>
 
-    {{-- Info Box Project --}}
-    <div class="row mb-4">
-        <div class="col-lg-12">
-            <div class="card-style">
+    {{-- Info Proyek & Form Tambah Tugas --}}
+    <div class="row mb-4" style="display: flex; flex-wrap: wrap;">
+        {{-- Kolom Kiri: Informasi Proyek --}}
+        <div class="col-lg-4" style="display: flex;">
+            <div class="card-style mb-30"  style="flex: 1;">
                 <div class="title mb-20">
                     <h5><i class="fa-regular fa-circle-question"></i> Informasi Proyek</h5>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-6 mb-3">
                         <strong>Nama Proyek:</strong>
                         <p>{{ $project->title }}</p>
                     </div>
-
-                    <div class="col-md-3">
+                    <div class="col-md-6 mb-3">
                         <strong>Status:</strong>
                         <p>{{ $project->status }}</p>
                     </div>
-
-                    <div class="col-md-3">
+                    <div class="col-md-12 mb-3">
                         <strong>Prioritas</strong>
                         <div class="mt-1">
                             <span class="badge bg-info">
@@ -66,110 +65,130 @@
                             </small>
                         </div>
                     </div>
-
-                    <div class="col-md-3">
+                    <div class="col-md-6 mb-3">
                         <strong>Deadline:</strong>
                         <p>{{ $project->end_date }}</p>
                     </div>
-                </div>
-
-                <div class="mt-3">
-                    <strong>Deskripsi:</strong>
-                    <p>{{ $project->description ?? '-' }}</p>
+                    <div class="col-md-6 mb-3">
+                        <strong>Dibuat:</strong>
+                        <p>{{ $project->created_at->format('d M Y') }}</p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <strong>Deskripsi:</strong>
+                        <p>{{ $project->description ?? '-' }}</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {{-- Form Tambah Tugas --}}
-    <div class="card-style mb-30">
-        <div class="title mb-20">
-            <h5><i class="fas fa-tasks"></i> Penambahan Tugas</h5>
-            <p class="text-muted">Tambahkan tugas baru untuk proyek ini</p>
-        </div>
-
-        <form action="{{ route('admin.tasks.store') }}" method="POST" id="addTaskForm" class="card p-4 mb-4">
-            @csrf
-            <input type="hidden" name="project_id" value="{{ $project->id }}">
-
-            <div class="row g-3">
-                <!-- Nama Tugas -->
-                <div class="col-md-4">
-                    <label for="title" class="form-label fw-bold">
-                        <i class="fas fa-tag text-primary"></i> Nama Tugas <span class="text-danger">*</span>
-                    </label>
-                    <input type="text" id="title" name="title" class="form-control"
-                        placeholder="Masukkan nama tugas" required>
+        {{-- Kolom Kanan: Form Tambah Tugas --}}
+        <div class="col-lg-8" style="display: flex;">
+            <div class="card-style mb-30"  style="flex: 1;">
+                <div class="title mb-20">
+                    <h5><i class="fas fa-tasks"></i> Penambahan Tugas</h5>
+                    <p class="text-muted">Tambahkan tugas baru untuk proyek ini</p>
                 </div>
 
-                <!-- Prioritas Tugas -->
-                <div class="col-md-3">
-                    <label for="priority" class="form-label fw-bold">
-                        <i class="fas fa-flag text-warning"></i> Prioritas <span class="text-danger">*</span>
-                    </label>
-                    <select name="priority" id="priority" class="form-select" required>
-                        <option value="">Pilih Prioritas</option>
-                        <option value="low">🔵 Low (Rendah)</option>
-                        <option value="medium">🟡 Medium (Sedang)</option>
-                        <option value="high">🔴 High (Tinggi)</option>
-                    </select>
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle"></i> Prioritas menentukan urgensi tugas
-                    </small>
-                </div>
+                <form action="{{ route('admin.tasks.store') }}" method="POST" id="addTaskForm">
+                    @csrf
+                    <input type="hidden" name="project_id" value="{{ $project->id }}">
 
-                <!-- Deadline -->
-                <div class="col-md-3">
-                    <label for="deadline" class="form-label fw-bold">
-                        <i class="fas fa-calendar-alt text-danger"></i> Deadline <span class="text-danger">*</span>
-                    </label>
-                    <input type="date" id="deadline" name="deadline" class="form-control"
-                           min="{{ $project->start_date }}" required>
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle"></i> Tanggal batas penyelesaian tugas ({{ $project->start_date }})
-                    </small>
-                </div>
+                    <div class="row g-3">
+                        <!-- Nama Tugas -->
+                        <div class="col-md-12">
+                            <label for="title" class="form-label fw-bold">
+                                <i class="fas fa-tag text-primary"></i> Nama Tugas <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="title" name="title" class="form-control"
+                                placeholder="Masukkan nama tugas" required>
+                        </div>
 
-                <!-- Assign To -->
-                <div class="col-md-2">
-                    <label for="assigned_to" class="form-label fw-bold">
-                        <i class="fas fa-user text-success"></i> Assign Ke <span class="text-danger">*</span>
-                    </label>
-                    <select name="assigned_to" id="assigned_to" class="form-select" required>
-                        <option value="">Pilih Karyawan</option>
-                        @foreach($employees as $emp)
-                            @php
-                                $count = $employeeTaskCounts[$emp->id] ?? 0;
-                            @endphp
-                            <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $count }} tugas)</option>
-                        @endforeach
-                    </select>
-                    <small class="text-muted">Pilih penanggung jawab</small>
-                </div>
+                        <!-- Prioritas Tugas -->
+                        <div class="col-md-3">
+                            <label for="priority" class="form-label fw-bold">
+                                <i class="fas fa-flag text-warning"></i> Prioritas <span class="text-danger">*</span>
+                            </label>
+                            <select name="priority" id="priority" class="form-select" required>
+                                <option value="">Pilih Prioritas</option>
+                                <option value="low">🔵 Low (Rendah)</option>
+                                <option value="medium">🟡 Medium (Sedang)</option>
+                                <option value="high">🔴 High (Tinggi)</option>
+                            </select>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Urgensi tugas
+                            </small>
+                        </div>
 
-                {{-- Deskripsi Tugas --}}
-                <div class="col-md-12">
-                    <label for="description" class="form-label fw-bold">
-                        <i class="fas fa-solid fa-book"></i> Deskripsi Tugas
-                    </label>
-                    <textarea class="form-control"
-                            id="description"
-                            name="description"
-                            rows="3"
-                            placeholder="Deskripsi tugas... (opsional)"></textarea>
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle"></i> Deskripsi detail tentang tugas yang akan dikerjakan
-                    </small>
-                </div>
+                        <!-- Startdate -->
+                        <div class="col-md-3">
+                            <label for="startdate" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt text-success"></i> Startdate <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" id="startdate" name="startdate" class="form-control"
+                                min="{{ $project->start_date }}"
+                                max="{{ $project->end_date }}"
+                                required>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Min: {{ $project->start_date }} | Max: {{ $project->end_date }}
+                            </small>
+                        </div>
 
-                <!-- Tombol Submit -->
-                <div class="col-md-12 mt-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-plus-circle"></i> Tambah Tugas
-                    </button>
-                </div>
+                        <!-- Deadline -->
+                        <div class="col-md-3">
+                            <label for="deadline" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt text-danger"></i> Deadline <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" id="deadline" name="deadline" class="form-control"
+                                min="{{ $project->start_date }}"
+                                max="{{ $project->end_date }}"
+                                required>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Min: {{ $project->start_date }} | Max: {{ $project->end_date }}
+                            </small>
+                        </div>
+
+                        <!-- Assign To -->
+                        <div class="col-md-3">
+                            <label for="assigned_to" class="form-label fw-bold">
+                                <i class="fas fa-user text-success"></i> Assign Ke <span class="text-danger">*</span>
+                            </label>
+                            <select name="assigned_to" id="assigned_to" class="form-select" required>
+                                <option value="">Pilih Karyawan</option>
+                                @foreach($employees as $emp)
+                                    @php
+                                        $count = $employeeTaskCounts[$emp->id] ?? 0;
+                                    @endphp
+                                    <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $count }} tugas)</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Pilih penanggung jawab tugas</small>
+                        </div>
+
+                        {{-- Deskripsi Tugas --}}
+                        <div class="col-md-12">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-solid fa-book"></i> Deskripsi Tugas
+                            </label>
+                            <textarea class="form-control"
+                                    id="description"
+                                    name="description"
+                                    rows="2"
+                                    placeholder="Deskripsi tugas... (opsional)"></textarea>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Detail tentang tugas
+                            </small>
+                        </div>
+
+                        <!-- Tombol Submit -->
+                        <div class="col-md-12 mt-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-plus-circle"></i> Tambah Tugas
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 
     <!-- Modal Edit Tugas -->
@@ -201,7 +220,7 @@
                                 <textarea name="description" id="edit_description" class="form-control" rows="3" placeholder="Deskripsi tugas..."></textarea>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="edit_priority" class="form-label fw-bold">
                                     Prioritas <span class="text-danger">*</span>
                                 </label>
@@ -209,14 +228,36 @@
                                     <option value="low">🔵 LOW (Rendah)</option>
                                     <option value="medium">🟡 MEDIUM (Sedang)</option>
                                     <option value="high">🔴 HIGH (Tinggi)</option>
+
                                 </select>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label for="edit_startdate" class="form-label fw-bold">
+                                    Startdate <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="startdate" id="edit_startdate" class="form-control"
+                                       min="{{ $project->start_date }}"
+                                       max="{{ $project->end_date }}"
+                                       required>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Startdate harus antara {{ $project->start_date }} dan {{ $project->end_date }}
+                                </small>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
                                 <label for="edit_deadline" class="form-label fw-bold">
                                     Deadline <span class="text-danger">*</span>
                                 </label>
-                                <input type="date" name="deadline" id="edit_deadline" class="form-control" required>
+                                <input type="date" name="deadline" id="edit_deadline" class="form-control"
+                                       min="{{ $project->start_date }}"
+                                       max="{{ $project->end_date }}"
+                                       required>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Deadline harus antara {{ $project->start_date }} dan {{ $project->end_date }}
+                                </small>
                             </div>
 
                             <div class="col-md-12 mb-3">
@@ -318,9 +359,9 @@
                                     </div>
                                 </div>
 
-                                <!-- Prioritas & Deadline (2 Kolom) -->
+                                <!-- Prioritas, Startdate, dan Deadline (3 Kolom) -->
                                 <div class="row g-3">
-                                    <div class="col-6">
+                                    <div class="col-4">
                                         <div class="d-flex align-items-start">
                                             <div class="flex-shrink-0">
                                                 <span class="badge bg-warning rounded-circle p-2">
@@ -333,12 +374,17 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-8">
                                         <div class="d-flex align-items-start">
                                             <div class="flex-shrink-0">
-                                                <span class="badge bg-danger rounded-circle p-2">
+                                                <span class="badge bg-secondary rounded-circle p-2">
                                                     <i class="fas fa-calendar-alt fa-1x text-white"></i>
                                                 </span>
+                                            </div>
+
+                                            <div class="flex-grow-1 ms-2">
+                                                <small class="text-muted d-block">Start Date</small>
+                                                <span id="delete_info_start_date" class="fw-bold"></span>
                                             </div>
                                             <div class="flex-grow-1 ms-2">
                                                 <small class="text-muted d-block">Deadline</small>
@@ -395,6 +441,7 @@
                         <th>Assign Ke</th>
                         <th>Prioritas</th>
                         <th>Status</th>
+                        <th>Start Date</th>
                         <th>Deadline</th>
                         <th>Aksi</th>
                     </tr>
@@ -433,7 +480,7 @@ $(document).ready(function() {
         columns: [
             { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, width: '5%' },
             { data: 'title', name: 'title', width: '10%' },
-            { data: 'description', name: 'description', width: '40%' },
+            { data: 'description', name: 'description', width: '30%' },
             { data: 'employee_name', name: 'assignee.name'},
             {
                 data: 'priority_badge',
@@ -442,7 +489,10 @@ $(document).ready(function() {
                 orderDataType: 'priority-sort'
             },
             { data: 'status_badge', name: 'status'},
+            { data: 'startdate_format', name: 'start_date'},
             { data: 'deadline_format', name: 'deadline'},
+            // { data: 'submission_status', name: 'submission_status'},
+
             { data: 'action', name: 'action', orderable: false, searchable: false}
         ],
         ordering: false,  // Matiin sorting untuk semua kolom
@@ -519,6 +569,7 @@ $(document).ready(function() {
         $('#edit_title').val($(this).data('title'));
         $('#edit_description').val($(this).data('description') || '');
         $('#edit_priority').val($(this).data('priority'));
+        $('#edit_startdate').val($(this).data('start_date'));
         $('#edit_deadline').val($(this).data('deadline'));
         $('#edit_assigned_to').val($(this).data('assigned'));
         $('#editTaskModal').modal('show');
@@ -551,9 +602,10 @@ $(document).ready(function() {
     $(document).on('click', '.deleteTaskBtn', function() {
         $('#delete_task_id').val($(this).data('id'));
         $('#delete_info_title').text($(this).data('title'));
-        $('#delete_info_description').text($(this).data('title'));
+        $('#delete_info_description').text($(this).data('description'));
         $('#delete_info_employee').text($(this).data('employee'));
         $('#delete_info_priority').text($(this).data('priority'));
+        $('#delete_info_start_date').text($(this).data('start_date'));
         $('#delete_info_deadline').text($(this).data('deadline'));
         $('#delete_info_status').text($(this).data('deadline'));
         $('#deleteTaskModal').modal('show');

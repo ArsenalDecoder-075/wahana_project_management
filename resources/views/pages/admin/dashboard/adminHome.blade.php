@@ -150,59 +150,139 @@
             @endforeach
         </div>
 
-        <!-- Charts Row -->
-        <div class="row mb-4">
-            <!-- Branch Distribution Chart -->
-            {{-- <div class="col-xl-8 col-lg-7">
-                <div class="card border shadow-sm h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="card-title mb-0">
-                            @if ($filters['period_type'] === 'all')
-                                Distribusi Cabang per Area (Semua Periode)
-                            @else
-                                Distribusi Cabang per Area
-                            @endif
-                        </h5>
-                        <small class="text-muted">
-                            @if ($filters['period_type'] === 'all')
-                                Grafik jumlah cabang per area
-                            @else
-                                Grafik jumlah cabang per area pada periode terpilih
-                            @endif
-                        </small>
+{{-- Row Konten Dashboard --}}
+        {{-- Row 1: Notifikasi + Statistik + Progress --}}
+        <div class="row">
+            {{-- Kiri : Notifikasi Tugas Review --}}
+            <div class="col-md-4 d-flex">
+                <div class="card shadow-sm w-100">
+                    <div class="card-header bg-warning text-white d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-bell me-2"></i>
+                            <span class="fw-bold">Tugas Yang Butuh Review!</span>
+                        </div>
+                        @if(isset($reviewProjects) && count($reviewProjects) > 0)
+                            <span class="badge bg-light text-dark rounded-pill">
+                                {{ $totalReviewTasks }} Tugas
+                            </span>
+                        @endif
                     </div>
-                    <div class="card-body">
-                        <canvas id="branchChart" height="300"></canvas>
-                    </div>
-                </div>
-            </div> --}}
-
-            <!-- Branch Project Status Chart -->
-            {{-- lg gk guna!!! --}}
-            {{-- <div class="col-xl-8 col-lg-7">
-                <div class="card border shadow-sm h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="card-title mb-0">
-                            @if ($filters['period_type'] === 'all')
-                                Jumlah Proyek per Cabang (Semua Periode)
-                            @else
-                                Jumlah Proyek per Cabang
-                            @endif
-                        </h5>
-                        <small class="text-muted">
-                            @if ($filters['period_type'] === 'all')
-                                Grafik jumlah proyek per cabang berdasarkan status (selesai vs belum selesai)
-                            @else
-                                Grafik jumlah proyek per cabang pada periode terpilih
-                            @endif
-                        </small>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="branchProjectStatusChart" height="300"></canvas>
+                    <div class="card-body d-flex flex-column">
+                        @if(isset($reviewProjects) && count($reviewProjects) > 0)
+                            <div class="flex-grow-1">
+                                @foreach($reviewProjects as $item)
+                                    <div class="mb-2">
+                                        <a href="{{ route('admin.tasks.manage', $item['project']->id) }}"
+                                        class="text-decoration-none">
+                                            <div class="d-flex align-items-center p-2 rounded-3 hover-bg-light"
+                                                style="transition: all 0.2s; border: 1px solid #f0f0f0;">
+                                                <i class="fas fa-project-diagram text-primary me-2"></i>
+                                                <span class="fw-semibold text-dark">{{ $item['project']->title }}</span>
+                                                <span class="badge bg-danger ms-2 rounded-pill">
+                                                    {{ $item['review_count'] }}
+                                                </span>
+                                                <small class="text-muted ms-1">Review</small>
+                                            </div>
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="flex-grow-1 d-flex align-items-center justify-content-center">
+                                <div>
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <span class="text-muted">Tidak ada tugas yang menunggu review.</span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
-            </div> --}}
+            </div>
 
+            {{-- Tengah : Statistik Karyawan --}}
+            <div class="col-md-4 d-flex">
+                <div class="card shadow-sm w-100">
+                    <div class="card-header bg-secondary">
+                        <h5 class="mb-0 text-white"><i class="fas fa-chart-simple me-2"></i>Statistik Karyawan</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="flex-grow-1">
+                            @forelse($employeeStats as $stat)
+                                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                    <div>
+                                        <span class="fw-bold">{{ $stat['employee']->name }}</span>
+                                        <div class="small text-muted">
+                                            {{ $stat['completed'] }} selesai / {{ $stat['total'] }} tugas
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success">{{ $stat['progress'] }}%</span>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-muted text-center">Belum ada karyawan bawahan.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Kanan : Progress Proyek --}}
+            <div class="col-md-4 d-flex">
+                <div class="card shadow-sm w-100">
+                    <div class="card-header bg-success">
+                        <h5 class="mb-0 text-white"><i class="fas fa-project-diagram me-2"></i>Progress Proyek</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="flex-grow-1">
+                            @forelse($projectProgress as $item)
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <h6 class="card-title fw-bold mb-0 text-truncate" style="max-width: 70%;">
+                                            {{ $item['project']->title }}
+                                        </h6>
+                                        <span class="badge
+                                            @if($item['status'] == 'Completed') bg-success
+                                            @elseif($item['status'] == 'On Progress') bg-primary
+                                            @else bg-warning text-dark
+                                            @endif
+                                        ">
+                                            {{ $item['status'] }}
+                                        </span>
+                                    </div>
+                                    <p class="small text-muted mb-1">
+                                        {{ $item['completed_tasks'] }} / {{ $item['total_tasks'] }} tugas selesai
+                                    </p>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar
+                                            @if($item['progress'] == 100) bg-success
+                                            @elseif($item['progress'] >= 50) bg-primary
+                                            @elseif($item['progress'] >= 25) bg-warning
+                                            @else bg-danger
+                                            @endif
+                                            progress-bar-striped progress-bar-animated"
+                                            role="progressbar"
+                                            style="width: {{ $item['progress'] }}%"
+                                            aria-valuenow="{{ $item['progress'] }}"
+                                            aria-valuemin="0"
+                                            aria-valuemax="100">
+                                            {{ $item['progress'] }}%
+                                        </div>
+                                    </div>
+                                    <div class="mt-1 text-center">
+                                        <a href="{{ route('admin.tasks.manage', $item['project']->id) }}"
+                                        class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-tasks me-1"></i> Lihat Tugas
+                                        </a>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-muted text-center">Belum ada proyek yang dikelola.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 @endsection

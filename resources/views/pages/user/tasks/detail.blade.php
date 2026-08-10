@@ -18,158 +18,431 @@
             </div>
         </div>
 
-        <!-- Informasi Tugas -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h4 class="mb-2">{{ $task->title }}</h4>
-                        @if($task->description)
-                            <p class="text-muted">{{ $task->description }}</p>
-                        @else
-                            <p class="text-muted"><em>Tidak ada deskripsi</em></p>
-                        @endif
+        <div class="row" style="display: flex; flex-wrap: wrap;">
+            {{-- Kolom Kiri: Informasi Tugas + Tombol Aksi --}}
+            <div class="col-md-6" style="display: flex;">
+                <div class="card mb-4" style="flex: 1;">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fa-solid fa-info me-2"></i>
+                            Informasi Tugas
+                        </h5>
                     </div>
-                    <div class="col-md-4">
-                        <div class="border-start ps-3">
-                            <div class="mb-2">
-                                <span class="text-muted">Status:</span>
-                                @if($task->status == 'Pending')
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                @elseif($task->status == 'On Progress')
-                                    <span class="badge bg-info">On Progress</span>
-                                @elseif($task->status == 'Completed')
-                                    <span class="badge bg-success">Completed</span>
-                                @endif
+                    <div class="card-body">
+                        <div class="row">
+                            {{-- Judul & Deskripsi --}}
+                            <div class="col-md-8">
+                                <h4 class="mb-2">{{ $task->title }}</h4>
+                                <p class="text-muted mb-0">
+                                    {{ $task->description ?? 'Tidak ada deskripsi' }}
+                                </p>
                             </div>
-                            <div class="mb-2">
-                                <span class="text-muted">Bobot:</span>
-                                <strong>{{ $task->weight }}%</strong>
-                            </div>
-                            <div class="mb-2">
-                                <span class="text-muted">Deadline:</span>
-                                <strong>{{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}</strong>
-                                @php
-                                    $daysLeft = \Carbon\Carbon::now()->diffInDays($task->deadline, false);
-                                @endphp
-                                @if($task->status != 'Completed')
-                                    @if($daysLeft < 0)
-                                        <span class="badge bg-danger ms-1">Terlambat</span>
-                                    @elseif($daysLeft <= 3)
-                                        <span class="badge bg-warning text-dark ms-1">Mendesak</span>
-                                    @endif
-                                @endif
-                            </div>
-                            <div>
-                                <span class="text-muted">Dibuat oleh:</span>
-                                <strong>{{ $task->creator->name ?? '-' }}</strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Form Submit Catatan -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-pen me-2"></i>
-                    Kirim Catatan Tugas
-                </h5>
-            </div>
-            <div class="card-body">
-                @if($submission && $submission->status == 'pending')
-                    <div class="alert alert-warning">
-                        <i class="fas fa-clock me-2"></i>
-                        Anda memiliki catatan yang sedang menunggu review. Tunggu review selesai sebelum mengirim catatan baru.
-                    </div>
-                    <div class="border-start border-4 border-warning ps-3 bg-light p-3 rounded">
-                        <strong>Catatan terakhir:</strong>
-                        <p class="mb-0 text-muted">{{ $submission->notes ?? 'Tidak ada catatan' }}</p>
-                        <small class="text-muted">Dikirim: {{ $submission->created_at->format('d M Y H:i') }}</small>
-                    </div>
-                @else
-                    <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}">
-                        @csrf
-                        <input type="hidden" name="task_id" value="{{ $task->id }}">
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Catatan <span class="text-muted">(opsional)</span></label>
-                            <textarea class="form-control" id="notes" name="notes" rows="5" placeholder="Tulis catatan atau penjelasan tentang pengerjaan tugas ini..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success" id="submitNotesBtn">
-                            <i class="fas fa-paper-plane me-1"></i> Kirim Catatan
-                        </button>
-                    </form>
-                @endif
+                            {{-- Status & Info --}}
+                            <div class="col-md-4">
+                                <div class="border-start ps-3">
+                                    {{-- Status --}}
+                                    <div class="mb-2">
+                                        <span class="text-muted">Status:</span>
+                                        {{-- <span class="badge
+                                            @if($task->status == 'Pending') bg-warning text-dark
+                                            @elseif($task->status == 'On Progress') bg-info
+                                            @elseif($task->status == 'Completed') bg-success
+                                            @endif
+                                            fs-6" id="currentStatusBadge">
+                                            {{ $task->status }}
+                                        </span> --}}
+                                        <span class="badge
+                                            @if($task->status == 'Pending') bg-warning text-dark
+                                            @elseif($task->status == 'On Progress') bg-info
+                                            @elseif($task->status == 'Review') bg-secondary
+                                            @elseif($task->status == 'Rejected') bg-danger
+                                            @elseif($task->status == 'Completed') bg-success
+                                            @endif
+                                            fs-6" id="currentStatusBadge">
+                                            {{ $task->status }}
+                                        </span>
+                                    </div>
 
-                @if($submission && $submission->status == 'reviewed')
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-2"></i>
-                        Catatan Anda telah direview.
-                    </div>
-                    <div class="border-start border-4 border-success ps-3 bg-light p-3 rounded">
-                        <strong>Catatan Anda:</strong>
-                        <p class="mb-0 text-muted">{{ $submission->notes ?? 'Tidak ada catatan' }}</p>
-                        <small class="text-muted">Dikirim: {{ $submission->created_at->format('d M Y H:i') }}</small>
-                    </div>
-                @endif
-            </div>
-        </div>
+                                    {{-- Prioritas --}}
+                                    <div class="mb-2">
+                                        <span class="text-muted">Prioritas:</span>
+                                        @php
+                                            $priorityColors = ['low' => 'info','medium' => 'warning','high' => 'danger'];
+                                            $priorityText = ['low' => 'LOW','medium' => 'MEDIUM','high' => 'HIGH'];
+                                            $priorityTextColors = ['low' => 'text-dark','medium' => 'text-dark','high' => 'text-white'];
+                                        @endphp
+                                        <span class="badge bg-{{ $priorityColors[$task->priority] ?? 'secondary' }} {{ $priorityTextColors[$task->priority] ?? '' }}">
+                                            {{ $priorityText[$task->priority] ?? '-' }}
+                                        </span>
+                                    </div>
 
-        <!-- Riwayat Submission (opsional) -->
-        @if($task->submissions->count() > 1)
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-history me-2"></i>
-                    Riwayat Catatan
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Catatan</th>
-                                <th>Status</th>
-                                <th>Tanggal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($task->submissions->sortByDesc('created_at') as $index => $sub)
-                                @if($sub->employee_id == Auth::id())
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $sub->notes ?? '-' }}</td>
-                                    <td>
-                                        @if($sub->status == 'pending')
-                                            <span class="badge bg-warning text-dark">Pending</span>
-                                        @elseif($sub->status == 'reviewed')
-                                            <span class="badge bg-success">Reviewed</span>
-                                        @else
-                                            <span class="badge bg-secondary">{{ $sub->status }}</span>
+                                    {{-- Deadline --}}
+                                    <div class="mb-2">
+                                        <span class="text-muted">Deadline:</span>
+                                        <strong>{{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}</strong>
+                                        @php
+                                            $daysLeft = \Carbon\Carbon::now()->diffInDays($task->deadline, false);
+                                        @endphp
+                                        @if($task->status != 'Completed')
+                                            @if($daysLeft < 0)
+                                                <span class="badge bg-danger ms-1">Terlambat</span>
+                                            @elseif($daysLeft <= 3)
+                                                <span class="badge bg-warning text-dark ms-1">Mendesak</span>
+                                            @endif
                                         @endif
-                                    </td>
-                                    <td>{{ $sub->created_at->format('d M Y H:i') }}</td>
-                                </tr>
-                                @endif
-                            @endforeach
-                        </tbody>
-                    </table>
+                                    </div>
+
+                                    {{-- Pembuat --}}
+                                    <div class="mb-2">
+                                        <span class="text-muted">Dibuat oleh:</span>
+                                        <strong>{{ $task->creator->name ?? '-' }}</strong>
+                                    </div>
+
+                                    {{-- Tombol Aksi --}}
+                                    <div>
+                                        @if($task->status == 'Pending')
+                                            <button class="btn btn-warning w-100" id="btnOnProgress">
+                                                <i class="fas fa-play me-2"></i> Mulai Kerjakan
+                                            </button>
+                                            <small class="text-muted d-block mt-2" id="statusMessage">
+                                                <i class="fas fa-info-circle me-1"></i> Mulai kerjakan tugas
+                                            </small>
+                                        @elseif($task->status == 'On Progress')
+                                            <button class="btn btn-success w-100" id="btnReview">
+                                                <i class="fas fa-check me-2"></i> Mulai Review
+                                            </button>
+                                            <small class="text-muted d-block mt-2" id="statusMessage">
+                                                <i class="fas fa-info-circle me-1"></i> Ini akan memberikan notif ke atasan bahwa tugas ini siap untuk diverifikasi dan menunggu review. Masih bisa mengirim catatan tambahan jika diperlukan.
+                                            </small>
+                                        @elseif($task->status == 'Review')
+                                            <button class="btn btn-secondary w-100" disabled>
+                                                <i class="fas fa-clock me-2"></i> Sedang Direview
+                                            </button>
+                                            <small class="text-muted d-block mt-2" id="statusMessage">
+                                                <i class="fas fa-info-circle me-1"></i> Tugas sedang dalam proses review oleh atasan. Anda masih dapat menambahkan catatan jika diperlukan.
+                                            </small>
+                                        @elseif($task->status == 'Rejected')
+                                            <button class="btn btn-warning w-100" id="btnOnProgress">
+                                                <i class="fas fa-redo me-2"></i> Mulai Kerjakan Kembali
+                                            </button>
+                                            <small class="text-muted d-block mt-2" id="statusMessage">
+                                                <i class="fas fa-info-circle me-1"></i> Tugas ditolak, silakan perbaiki dan kerjakan kembali.
+                                            </small>
+                                        @elseif($task->status == 'Completed')
+                                            <button class="btn btn-secondary w-100" disabled>
+                                                <i class="fas fa-check-circle me-2"></i> Selesai
+                                            </button>
+                                            <small class="text-muted d-block mt-2" id="statusMessage">
+                                                <i class="fas fa-check-circle text-success me-1"></i> Tugas selesai!
+                                            </small>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Kolom Kanan: Kirim Catatan Tugas --}}
+            <div class="col-md-6" style="display: flex;">
+                <div class="card mb-4" style="flex: 1;">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-pen me-2"></i>
+                            Kirim Catatan Tugas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if($task->status == 'Pending')
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Tugas belum dimulai. Silakan klik tombol <strong>"Mulai Kerjakan"</strong> terlebih dahulu untuk dapat mengirim catatan.
+                            </div>
+                        @elseif(in_array($task->status, ['On Progress', 'Review', 'Rejected']))
+                        @if($submission && $submission->status == 'pending')
+                            <div class="alert alert-warning">
+                                <i class="fas fa-clock me-2"></i>
+                                Anda memiliki catatan yang sedang menunggu review. Tunggu review selesai sebelum mengirim catatan baru.
+                            </div>
+                            <div class="border-start border-4 border-warning ps-3 bg-light p-3 rounded">
+                                <strong>Catatan terakhir:</strong>
+                                <p class="mb-0 text-muted">{{ $submission->notes ?? 'Tidak ada catatan' }}</p>
+                                <small class="text-muted">Dikirim: {{ $submission->created_at->format('d M Y H:i') }}</small>
+                            </div>
+                        @else
+                            <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}">
+                                @csrf
+                                <input type="hidden" name="task_id" value="{{ $task->id }}">
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Catatan <span class="text-muted">(opsional)</span></label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="5" placeholder="Tulis catatan atau penjelasan tentang pengerjaan tugas ini..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success" id="submitNotesBtn">
+                                    <i class="fas fa-paper-plane me-1"></i> Kirim Catatan
+                                </button>
+                            </form>
+                        @endif
+
+                        @if($submission && $submission->status == 'reviewed')
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Catatan Anda telah direview.
+                            </div>
+                            <div class="border-start border-4 border-success ps-3 bg-light p-3 rounded">
+                                <strong>Catatan Anda:</strong>
+                                <p class="mb-0 text-muted">{{ $submission->notes ?? 'Tidak ada catatan' }}</p>
+                                <small class="text-muted">Dikirim: {{ $submission->created_at->format('d M Y H:i') }}</small>
+                            </div>
+                        @endif
+                    @endif
+
+                    </div>
                 </div>
             </div>
         </div>
-        @endif
+
+        {{-- Riwayat Catatan (hanya tampil jika status bukan Pending dan ada riwayat) --}}
+        @if($task->submissions->count() > 0)
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Riwayat Catatan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" style="border-collapse: collapse; width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">#</th>
+                                    <th style="width: 45%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Catatan</th>
+                                    <th style="width: 25%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Status</th>
+                                    <th style="width: 15%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Tanggal</th>
+                                    @if($task->status != 'Completed')
+                                    <th style="width: 10%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Aksi</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($task->submissions->sortBy('created_at') as $index => $sub)
+                                    @if($sub->employee_id == Auth::id())
+                                    <tr>
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">{{ $index + 1 }}</td>
+                                        <td style="padding: 12px 8px; border: 1px solid #dee2e6;">{{ $sub->notes ?? '-' }}</td>
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
+                                            @if($sub->status == 'pending')
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                            @elseif($sub->status == 'reviewed')
+                                                <span class="badge bg-success">Reviewed</span>
+                                            @else
+                                                <span class="badge bg-secondary">{{ $sub->status }}</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">{{ $sub->created_at->format('d M Y H:i') }}</td>
+                                        @if($task->status != 'Completed')
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
+                                            {{-- Tombol aksi jika diperlukan --}}
+                                        </td>
+                                        @endif
+                                    </tr>
+                                    @endif
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
     </div>
 @endsection
 
-@push('script')
+{{-- Scripts --}}
+@push('scripts')
 <script>
 $(document).ready(function() {
+    console.log('✅ 1. Document ready!');
+    console.log('🔍 2. Tombol btnOnProgress:', $('#btnOnProgress').length);
+    console.log('🔍 3. Tombol btnComplete:', $('#btnComplete').length);
+    console.log('🔍 4. Badge status:', $('#currentStatusBadge').length);
+    console.log('🔍 5. Pesan status:', $('#statusMessage').length);
+
+    // ============================================================
+    // 1. FUNGSI SHOW TOAST
+    // ============================================================
+    function showToast(message, type = 'success') {
+        if ($('#toast-container').length === 0) {
+            $('body').append(`
+                <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;"></div>
+            `);
+        }
+
+        const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+        const icon = type === 'success' ? '✅' : '❌';
+
+        const toast = `
+            <div class="toast show align-items-center text-white ${bgClass} border-0 mb-2 shadow-lg" role="alert" style="border-radius: 8px;">
+                <div class="d-flex p-3">
+                    <div class="toast-body fw-bold">${icon} ${message}</div>
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+
+        $('#toast-container').append(toast);
+        setTimeout(() => {
+            $('#toast-container .toast:first').remove();
+        }, 5000);
+    }
+
+    // ============================================================
+    // 2. FUNGSI UPDATE STATUS
+    // ============================================================
+    function updateTaskStatus(status) {
+        console.log('🔄 updateTaskStatus dipanggil, status:', status);
+
+        const btn = status === 'On Progress' ? $('#btnOnProgress') : status === 'Review' ? $('#btnReview') : $('#btnComplete');
+        const originalText = btn.html();
+
+        if (!btn.length) {
+            console.error('❌ Tombol tidak ditemukan!');
+            return;
+        }
+
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Memproses...');
+
+        $.ajax({
+            url: "{{ route('user.tasks.updateStatus') }}",
+            method: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}",
+                task_id: "{{ $task->id }}",
+                status: status
+            },
+            success: function(response) {
+                console.log('✅ Response success:', response);
+
+                if (response.success) {
+                    // 1. Update badge status
+                    const statusMap = {
+                        'Pending': 'bg-warning text-dark',
+                        'On Progress': 'bg-info',
+                        'Review': 'bg-primary',
+                        'Rejected': 'bg-danger',
+                        'Completed': 'bg-success'
+                    };
+                    $('#currentStatusBadge')
+                        .removeClass('bg-warning text-dark bg-info bg-success')
+                        .addClass(statusMap[response.new_status])
+                        .text(response.new_status);
+
+                    // 2. Update tombol dan pesan
+                    if (response.new_status === 'On Progress') {
+                        $('#btnOnProgress')
+                            .replaceWith(`
+                                <button class="btn btn-success w-100" id="btnComplete">
+                                    <i class="fas fa-check me-2"></i> Selesaikan Tugas
+                                </button>
+                            `);
+                        $('#statusMessage').html('<i class="fas fa-info-circle me-1"></i> Selesaikan tugas dengan mengubah status ke "Completed"');
+                    } else if (response.new_status === 'Completed') {
+                        $('#btnComplete')
+                            .replaceWith(`
+                                <button class="btn btn-secondary w-100" disabled>
+                                    <i class="fas fa-check-circle me-2"></i> Selesai
+                                </button>
+                            `);
+                        $('#statusMessage').html('<i class="fas fa-check-circle text-success me-1"></i> Tugas ini sudah selesai!');
+                    }
+
+                    // 3. Reload halaman agar tampilan card catatan dan riwayat otomatis update
+                    showToast(response.message, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast(response.message || 'Gagal update status', 'error');
+                    btn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr) {
+                console.error('❌ Error response:', xhr);
+                let errorMsg = 'Terjadi kesalahan saat update status';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                showToast(errorMsg, 'error');
+                btn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    // ============================================================
+    // 3. EVENT LISTENER (LANGSUNG)
+    // ============================================================
+    // $('#btnOnProgress').on('click', function() {
+    //     console.log('🔥 4. Tombol On Progress DIKLIK (langsung)!');
+    //     if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
+    //         updateTaskStatus('On Progress');
+    //     }
+    // });
+
+    $(document).on('click', '#btnOnProgress', function() {
+        console.log('🔥 Tombol On Progress DIKLIK!');
+        if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
+            updateTaskStatus('On Progress');
+        }
+    });
+
+    // Tombol Mulai Review (dari On Progress)
+    $(document).on('click', '#btnReview', function() {
+        console.log('🔥 Tombol Review DIKLIK!');
+        if (confirm('Apakah Anda yakin ingin mengirim tugas ke review?')) {
+            updateTaskStatus('Review');
+        }
+    });
+
+    // $('#btnComplete').on('click', function() {
+    //     console.log('🔥 5. Tombol Complete DIKLIK (langsung)!');
+    //     if (confirm('Apakah Anda yakin tugas ini sudah selesai?')) {
+    //         updateTaskStatus('Completed');
+    //     }
+    // });
+
+    // ============================================================
+    // 4. EVENT LISTENER (DELEGASI - CADANGAN)
+    // ============================================================
+    // $(document).on('click', '#btnOnProgress', function(e) {
+    //     if (!$(this).data('handled')) {
+    //         $(this).data('handled', true);
+    //         console.log('🔥 Tombol On Progress DIKLIK (delegasi)!');
+    //         if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
+    //             updateTaskStatus('On Progress');
+    //         }
+    //         setTimeout(() => $(this).data('handled', false), 500);
+    //     }
+    // });
+
+    $(document).on('click', '#btnComplete', function(e) {
+        if (!$(this).data('handled')) {
+            $(this).data('handled', true);
+            console.log('🔥 Tombol Complete DIKLIK (delegasi)!');
+            if (confirm('Apakah Anda yakin tugas ini sudah selesai?')) {
+                updateTaskStatus('Completed');
+            }
+            setTimeout(() => $(this).data('handled', false), 500);
+        }
+    });
+
+    // ============================================================
+    // 5. SUBMIT CATATAN
+    // ============================================================
     $('#submitNotesForm').on('submit', function(e) {
         e.preventDefault();
+        console.log('📝 Form catatan disubmit');
+
         const form = $(this);
         const btn = $('#submitNotesBtn');
         const originalText = btn.html();
@@ -181,24 +454,28 @@ $(document).ready(function() {
             method: 'POST',
             data: form.serialize(),
             success: function(response) {
+                console.log('✅ Response submit catatan:', response);
                 if (response.success) {
-                    alert('Catatan berhasil dikirim!');
-                    location.reload();
+                    showToast(response.message || 'Catatan berhasil dikirim!', 'success');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    alert('Gagal: ' + response.message);
+                    showToast('Gagal: ' + response.message, 'error');
                     btn.prop('disabled', false).html(originalText);
                 }
             },
             error: function(xhr) {
+                console.error('❌ Error submit catatan:', xhr);
                 let errorMsg = 'Terjadi kesalahan saat mengirim catatan';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                alert(errorMsg);
+                showToast(errorMsg, 'error');
                 btn.prop('disabled', false).html(originalText);
             }
         });
     });
+
+    console.log('✅ Semua event listener terpasang!');
 });
 </script>
 @endpush

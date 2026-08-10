@@ -6,13 +6,29 @@
         <div class="row align-items-center mb-4">
             <div class="col-md-6">
                 <h2 class="text-bold">
-                    <i class="fas fa-tasks text-primary me-2"></i>
+                    <i class="fas fa-tasks text-primary me-2 pt-5"></i>
                     Tugas Anda di Proyek: {{ $project->title }}
                 </h2>
-                <p class="text-muted">
-                    Manajer: {{ $project->manager->name ?? 'Tidak ada' }} &nbsp;|&nbsp;
-                    Periode: {{ \Carbon\Carbon::parse($project->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($project->end_date)->format('d M Y') }}
-                </p>
+                <div class="pt-2 mt-sm-0">
+                    {{-- Manajer --}}
+                    <span class="badge bg-primary me-1">
+                        <i class="fas fa-user-tie me-1"></i> Manajer: {{ $project->manager->name ?? 'Tidak ada' }}
+                    </span>
+                    {{-- Periode Pekerjaan --}}
+                    <span class="badge bg-secondary me-1">
+                        <i class="fas fa-calendar-alt me-1"></i> Periode: {{ \Carbon\Carbon::parse($project->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($project->end_date)->format('d M Y') }}
+                    </span>
+                    {{-- Progress --}}
+                    @php
+                        $total = $tasks->count();
+                        $completed = $tasks->where('status', 'Completed')->count();
+                        $progress = $total > 0 ? round(($completed / $total) * 100) : 0;
+                    @endphp
+
+                    <span class="badge bg-success me-1">
+                        <i class="fas fa-chart-line me-1"></i> Progress: {{ $completed }}/{{ $total }}
+                    </span>
+                </div>
             </div>
             <div class="col-md-6 text-end">
                 <a href="{{ route('user.dashboard') }}" class="btn btn-secondary">
@@ -22,42 +38,40 @@
         </div>
 
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list me-2"></i>
-                    Daftar Tugas Anda
-                    <span class="badge bg-secondary ms-2">{{ $tasks->count() }}</span>
-                </h5>
-            </div>
             <div class="card-body">
                 @if($tasks->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped align-middle">
+                        <table class="table table-hover align-middle" style="border-collapse: collapse; width: 100%;">
                             <thead>
-                                <tr>
-                                    <th style="width: 5%;" class="text-center">#</th>
-                                    <th style="width: 30%;">Judul Tugas</th>
-                                    <th style="width: 15%;" class="text-center">Bobot</th>
-                                    <th style="width: 18%;" class="text-center">Deadline</th>
-                                    <th style="width: 17%;" class="text-center">Status</th>
-                                    <th style="width: 15%;" class="text-center">Aksi</th>
+                                <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="width: 5%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">#</th>
+                                    <th style="width: 45%; padding: 12px 8px; border: 1px solid #dee2e6;">Judul Tugas</th>
+                                    <th style="width: 10%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Prioritas</th>
+                                    <th style="width: 20%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Deadline</th>
+                                    <th style="width: 10%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Status</th>
+                                    <th style="width: 10%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($tasks as $index => $task)
-                                    <tr>
-                                        <td class="text-center">{{ $index + 1 }}</td>
-                                        <td>
+                                    <tr style="border-bottom: 1px solid #dee2e6;">
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">{{ $index + 1 }}</td>
+                                        <td style="padding: 12px 8px; border: 1px solid #dee2e6;">
                                             <strong>{{ $task->title }}</strong>
-                                            @if($task->description)
-                                                <br>
-                                                <small class="text-muted">{{ Str::limit($task->description, 60) }}</small>
-                                            @endif
+                                            <br>
+                                            <small class="text-muted">{{ $task->description }}</small>
                                         </td>
-                                        <td class="text-center">
-                                            <span class="fw-bold">{{ $task->weight }}%</span>
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
+                                            @php
+                                                $priorityColors = ['low' => 'info','medium' => 'warning','high' => 'danger'];
+                                                $priorityText = ['low' => 'LOW','medium' => 'MEDIUM','high' => 'HIGH'];
+                                                $priorityTextColors = ['low' => 'text-dark','medium' => 'text-dark','high' => 'text-white'];
+                                            @endphp
+                                            <span class="badge text-bold bg-{{ $priorityColors[$task->priority] ?? 'secondary' }} {{ $priorityTextColors[$task->priority] ?? '' }}">
+                                                {{ $priorityText[$task->priority] ?? '' }}
+                                            </span>
                                         </td>
-                                        <td class="text-center">
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
                                             @php
                                                 $deadline = \Carbon\Carbon::parse($task->deadline);
                                                 $today = \Carbon\Carbon::now();
@@ -75,7 +89,7 @@
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="text-center">
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
                                             @if($task->status == 'Pending')
                                                 <span class="badge bg-warning text-dark" style="padding: 6px 12px;">
                                                     <i class="fas fa-clock me-1"></i> Pending
@@ -88,13 +102,17 @@
                                                 <span class="badge bg-success" style="padding: 6px 12px;">
                                                     <i class="fas fa-check me-1"></i> Completed
                                                 </span>
+                                                @elseif($task->status == 'Rejected')
+                                                    <span class="badge bg-danger" style="padding: 6px 12px;">
+                                                        <i class="fa-regular fa-circle-xmark"></i> Rejected
+                                                    </span>
                                             @else
                                                 <span class="badge bg-secondary" style="padding: 6px 12px;">
                                                     {{ $task->status }}
                                                 </span>
                                             @endif
                                         </td>
-                                        <td class="text-center">
+                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
                                             <a href="{{ route('user.tasks.detail', $task->id) }}" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-eye me-1"></i> Detail
                                             </a>

@@ -25,4 +25,11 @@
             <span class="text">Manage Project</span>
         </a>
     </li>
+
+    <li class="nav-item @if (request()->routeIs('manager.calendar')) active @endif">
+        <a href="{{ route('manager.calendar') }}">
+            <span class="icon"><i class="fa-solid fa-calendar-days"></i></span>
+            <span class="text">Calender</span>
+        </a>
+    </li>
 </ul>

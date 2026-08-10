@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Branch;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskReview;
+use App\Models\TaskSubmission;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
@@ -32,21 +34,15 @@ class AdminController extends Controller
      */
     public function adminHome(Request $request)
     {
-        // Default week start day to Friday (5)
+        // 1. LOGIKA FILTER TANGGAL (SAMA SEPERTI SEBELUMNYA)
         $firstDayOfWeek = 5; // Friday
-
-        // Convert numeric day to Carbon constant
         $firstDayConstant = $this->numericDayToCarbon($firstDayOfWeek);
 
-        // Get filter parameters with defaults
         $area = $request->get('area', 'all');
         $city = $request->get('city', 'all');
         $periodType = $request->get('period_type', 'all');
 
-        // Initialize period label based on period type
         $periodLabel = '';
-
-        // Determine date range based on period type
         if ($periodType == 'current_week') {
             $startDate = Carbon::now()->startOfWeek($firstDayConstant)->startOfDay();
             $endDate = (clone $startDate)->addDays(6)->endOfDay();
@@ -54,11 +50,9 @@ class AdminController extends Controller
         } elseif ($periodType == 'custom' && $request->has('start_date')) {
             $startDate = Carbon::parse($request->get('start_date'))->startOfDay();
             $dayOfWeek = $startDate->dayOfWeek;
-
             if ($dayOfWeek != $firstDayOfWeek) {
                 $startDate = $startDate->previous($firstDayConstant);
             }
-
             $endDate = (clone $startDate)->addDays(6)->endOfDay();
             $periodLabel = $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y');
         } elseif ($periodType == 'custom' && !$request->has('start_date')) {
@@ -71,7 +65,6 @@ class AdminController extends Controller
             $periodLabel = 'Semua Periode';
         }
 
-        // Store filters for passing to view
         $filters = [
             'period_type' => $periodType,
             'start_date' => $startDate->format('Y-m-d'),
@@ -81,47 +74,123 @@ class AdminController extends Controller
             'period_label' => $periodLabel,
         ];
 
-        // Get user and branch counts
+        // 2. STATISTIK GLOBAL UNTUK ADMIN (Semua Data)
         $totalUserCount = User::count();
         $totalProjectCount = Project::count();
-        $totalManagerCount = User::where('type', 2)->count(); // Count of managers
-        $totalWorkerCount = User::where('type', 0)->count(); // Count of regular users
         $totalBranchCount = Branch::count();
+        $totalTaskCount = Task::count(); // Tambahan: Total Tugas keseluruhan
 
-        // Count users by type
+        // Statistik Role Pengguna
         $adminCount = User::where('type', 1)->count(); // Admin
         $managerCount = User::where('type', 2)->count(); // Manager
-        $userCount = User::where('type', 0)->count(); // Regular User
+        $userCount = User::where('type', 0)->count(); // Karyawan
 
-        // Get branch chart data (branches per area)
+        // 3. DATA GRAFIK CABANG
         $branchChartData = $this->getBranchChartData($area, $city);
         $branchProjectStatusData = $this->getBranchProjectStatusData($area, $city);
-
-
-        // Get branch overview data
         $branchOverviewData = $this->getBranchOverviewData($area, $city);
 
-        // Get available areas for filter
+        // Area list untuk filter dropdown
         $areaLabels = Branch::select('area')
             ->distinct()
             ->orderBy('area')
             ->pluck('area')
             ->toArray();
 
+        // 4. DATA NOTIFIKASI REVIEW (ADMIN MELIHAT SEMUANYA)
+        // Admin tidak terikat manager_id. Lihat semua tugas yang berstatus Review.
+        $reviewProjects = [];
+        $totalReviewTasks = 0;
+
+        // Ambil semua proyek yang memiliki tugas berstatus Review
+        $projectsWithReview = Project::whereHas('tasks', function ($query) {
+            $query->where('status', 'Review');
+        })->get();
+
+        foreach ($projectsWithReview as $project) {
+            $reviewCount = Task::where('project_id', $project->id)
+                ->where('status', 'Review')
+                ->count();
+
+            if ($reviewCount > 0) {
+                $reviewProjects[] = [
+                    'project' => $project,
+                    'review_count' => $reviewCount
+                ];
+                $totalReviewTasks += $reviewCount;
+            }
+        }
+
+        // 5. DATA STATISTIK KARYAWAN (ADMIN MELIHAT SEMUANYA)
+        // Ambil semua karyawan, bukan hanya yang berada di bawah manager tertentu.
+        $employees = User::where('type', 0)->get();
+
+        $employeeStats = [];
+        $chartLabels = [];
+        $chartCompleted = [];
+        $chartPending = [];
+
+        foreach ($employees as $employee) {
+            $totalTasks = Task::where('assigned_to', $employee->id)->count();
+            $completedTasks = Task::where('assigned_to', $employee->id)
+                ->where('status', 'Completed')
+                ->count();
+            $pendingTasks = $totalTasks - $completedTasks;
+
+            $employeeStats[] = [
+                'employee' => $employee,
+                'total' => $totalTasks,
+                'completed' => $completedTasks,
+                'pending' => $pendingTasks,
+                'progress' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0
+            ];
+
+            $chartLabels[] = $employee->name;
+            $chartCompleted[] = $completedTasks;
+            $chartPending[] = $pendingTasks;
+        }
+
+        // 6. DATA PROGRESS PROYEK (ADMIN MELIHAT SEMUANYA)
+        // Ambil semua proyek dari seluruh cabang/manajer.
+        $projects = Project::all();
+        $projectProgress = [];
+
+        foreach ($projects as $project) {
+            $totalTasks = Task::where('project_id', $project->id)->count();
+            $completedTasks = Task::where('project_id', $project->id)
+                ->where('status', 'Completed')
+                ->count();
+
+            $projectProgress[] = [
+                'project' => $project,
+                'total_tasks' => $totalTasks,
+                'completed_tasks' => $completedTasks,
+                'progress' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0,
+                'status' => $project->status
+            ];
+        }
+
+        // 7. RETURN VIEW
         return view('pages.admin.dashboard.adminHome', compact(
             'filters',
             'totalUserCount',
             'totalProjectCount',
             'totalBranchCount',
-            'totalManagerCount',
-            'totalWorkerCount',
+            'totalTaskCount', // Tambahan baru
             'adminCount',
             'managerCount',
             'userCount',
             'branchChartData',
             'branchProjectStatusData',
             'branchOverviewData',
-            'areaLabels'
+            'areaLabels',
+            'reviewProjects',
+            'totalReviewTasks',
+            'employeeStats',
+            'chartLabels',
+            'chartCompleted',
+            'chartPending',
+            'projectProgress'
         ));
     }
 
@@ -841,7 +910,6 @@ User Management Methods (Simplified)
             'description' => 'nullable|string',
             'start_date'  => 'required|date',
             'end_date'    => 'required|date|after_or_equal:start_date',
-            // 'progress'    => 'required|integer|between:0,100',
             'status'      => 'required|in:Pending,On Progress,Completed',
         ]);
 
@@ -902,7 +970,7 @@ User Management Methods (Simplified)
                 ->where('manager_id', $project->manager_id);
         })->get();
 
-        // Ambil semua tugas proyek untuk statistik
+        // Ambil semua tugas proyek untuk statistik (hanya untuk view, bukan DataTables)
         $allTasks = Task::where('project_id', $project_id)->get();
 
         // Hitung statistik per prioritas
@@ -924,18 +992,30 @@ User Management Methods (Simplified)
 
         // Hitung jumlah tugas per karyawan untuk proyek ini
         $employeeTaskCounts = Task::where('project_id', $project_id)
-        ->select('assigned_to', DB::raw('count(*) as total'))
-        ->groupBy('assigned_to')
-        ->pluck('total', 'assigned_to')
-        ->toArray();
+            ->select('assigned_to', DB::raw('count(*) as total'))
+            ->groupBy('assigned_to')
+            ->pluck('total', 'assigned_to')
+            ->toArray();
 
-        // Jika AJAX (DataTables)
+        // ✅ AJAX untuk DataTables
         if ($request->ajax()) {
-            $tasks = Task::with('assignee')
-                ->where('project_id', $project_id)
-                ->orderByRaw("FIELD(priority, 'high', 'medium', 'low') ASC")
-                ->orderBy('created_at', 'DESC') // opsional: jika priority sama, urutkan berdasarkan created_at
-                ->get();
+            // ✅ Gunakan query builder + eager loading
+            // $tasks = Task::with(['assignee', 'submissions'])
+            //     ->where('project_id', $project_id)
+            //     ->select('tasks.*');
+            $tasks = Task::with(['assignee'])
+            ->withCount([
+                // Hitung submission yang pending (menunggu review)
+                'submissions as pending_submissions' => function($query) {
+                    $query->where('status', 'pending');
+                },
+                // Hitung submission yang sudah direview
+                'submissions as reviewed_submissions' => function($query) {
+                    $query->whereIn('status', ['reviewed', 'rejected']);
+                }
+            ])
+            ->where('project_id', $project_id)
+            ->select('tasks.*');
 
             return datatables()->of($tasks)
                 ->addIndexColumn()
@@ -946,7 +1026,6 @@ User Management Methods (Simplified)
                     if (empty($row->description)) {
                         return '<span class="text-muted"><i class="fas fa-minus"></i> Tidak ada deskripsi</span>';
                     }
-                    // Tampilkan seluruh teks dengan word-wrap
                     return '<div style="word-wrap: break-word; white-space: normal;">'
                             . nl2br(e($row->description)) . '</div>';
                 })
@@ -968,9 +1047,16 @@ User Management Methods (Simplified)
                         'Pending'     => '<span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pending</span>',
                         'On Progress' => '<span class="badge bg-primary"><i class="fas fa-spinner fa-spin"></i> On Progress</span>',
                         'Completed'   => '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>',
-                        'Revision'    => '<span class="badge bg-danger"><i class="fas fa-undo"></i> Revision</span>'
+                        'Review'    => '<span class="badge bg-secondary"><i class="fa-solid fa-magnifying-glass"></i> Review</span>',
+                        'Rejected'    => '<span class="badge bg-danger"><i class="fas fa-undo"></i> Rejected</span>'
                     ];
                     return $badges[$row->status] ?? '<span class="badge bg-secondary">' . $row->status . '</span>';
+                })
+                ->addColumn('startdate_format', function ($row) {
+                    if (empty($row->start_date)) {
+                        return '-';
+                    }
+                    return \Carbon\Carbon::parse($row->start_date)->format('d M Y');
                 })
                 ->addColumn('deadline_format', function ($row) {
                     $deadline = Carbon::parse($row->deadline);
@@ -987,36 +1073,111 @@ User Management Methods (Simplified)
                     return '<span class="text-success"><i class="fas fa-calendar-alt"></i> '
                         . $deadline->format('d M Y') . '</span>';
                 })
+                // ->addColumn('submission_status', function($row) {
+                //     // Cek apakah ada submission sama sekali
+                //     $anySubmission = $row->pending_submissions + $row->reviewed_submissions > 0;
+
+                //     if ($row->pending_submissions > 0) {
+                //         return '<span class="badge bg-warning text-dark">
+                //                     <i class="fas fa-clock me-1"></i> Menunggu Review
+                //                 </span>';
+                //     }
+                //     if ($anySubmission) {
+                //         return '<span class="badge bg-secondary">Sudah Direview</span>';
+                //     }
+                //     return '<span class="badge bg-secondary">-</span>';
+                // })
+                // ->addColumn('action', function($row) {
+                //     $route = Auth::user()->type == 1 ? 'admin.tasks.review' : 'manager.tasks.review';
+                //     $reviewBtn = '
+                //         <a href="'.route($route, ['project_id' => $row->project_id, 'task_id' => $row->id]).'"
+                //            class="btn btn-sm btn-success"
+                //            title="Lihat/Review Submission">
+                //             <i class="fas fa-check-double me-1"></i> Review
+                //         </a>
+                //     ';
+
+                //     return '
+                //     <div class="btn-group btn-group-sm" role="group">
+                //         <button class="btn btn-warning editTaskBtn"
+                //             data-id="'.$row->id.'"
+                //             data-title="'.addslashes($row->title).'"
+                //             data-description="'.addslashes($row->description).'"
+                //             data-priority="'.$row->priority.'"
+                //             data-assigned="'.$row->assigned_to.'"
+                //             data-start_date="'.$row->start_date.'"
+                //             data-deadline="'.$row->deadline.'"
+                //             title="Edit Tugas">
+                //             <i class="fas fa-edit"></i> Edit
+                //         </button>
+                //         <button class="btn btn-danger deleteTaskBtn"
+                //             data-id="'.$row->id.'"
+                //             data-title="'.addslashes($row->title).'"
+                //             data-description="'.addslashes($row->description).'"
+                //             data-employee="'.($row->assignee?->name ?? 'Tidak Ada').'"
+                //             data-start_date="'.$row->start_date.'"
+                //             data-priority="'.$row->priority.'"
+                //             data-deadline="'.$row->deadline.'"
+                //             title="Hapus Tugas">
+                //             <i class="fas fa-trash"></i> Hapus
+                //         </button>
+                //         '.$reviewBtn.'
+                //     </div>
+                //     ';
+                // })
                 ->addColumn('action', function($row) {
+                    $route = 'admin.tasks.review';
+                    // ✅ Review button: hanya muncul jika status 'Review' atau 'Completed'
+                    $reviewBtn = '';
+                    if (in_array($row->status, ['On Progress', 'Review', 'Completed'])) {
+                        $reviewBtn = '
+                            <a href="'.route($route, [
+                                'project_id' => $row->project_id,
+                                'task_id' => $row->id
+                            ]).'"
+                               class="btn btn-sm btn-success"
+                               title="Lihat/Review Submission">
+                                <i class="fas fa-check-double me-1"></i> Review
+                            </a>
+                        ';
+                    }
+
                     return '
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-warning editTaskBtn"
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-warning editTaskBtn"
                             data-id="'.$row->id.'"
                             data-title="'.addslashes($row->title).'"
                             data-description="'.addslashes($row->description).'"
                             data-priority="'.$row->priority.'"
                             data-assigned="'.$row->assigned_to.'"
+                            data-start_date="'.$row->start_date.'"
                             data-deadline="'.$row->deadline.'"
-                            title="Edit Tugas">
-                            <i class="fas fa-edit"></i>
+                            data-status="'.$row->status.'">
+                            <i class="fa fa-edit"></i>
                         </button>
-                        <button class="btn btn-danger deleteTaskBtn"
+                        <button class="btn btn-sm btn-danger deleteTaskBtn"
                             data-id="'.$row->id.'"
                             data-title="'.addslashes($row->title).'"
+                            data-description="'.addslashes($row->description).'"
                             data-employee="'.($row->assignee?->name ?? 'Tidak Ada').'"
                             data-priority="'.$row->priority.'"
+                            data-start_date="'.$row->start_date.'"
                             data-deadline="'.$row->deadline.'"
+                            data-status="'.$row->status.'"
                             title="Hapus Tugas">
                             <i class="fas fa-trash"></i>
                         </button>
+                        '.$reviewBtn.'
                     </div>
                     ';
                 })
-                ->rawColumns(['title', 'description', 'employee_name', 'priority_badge', 'status_badge', 'deadline_format', 'action'])
+                ->rawColumns(['title', 'description', 'employee_name', 'priority_badge', 'status_badge', 'deadline_format',
+                'submission_status',
+                'action'])
                 ->make(true);
         }
 
-        // Kirim data statistik ke view
+        // Kirim data statistik ke view (non-AJAX)
         return view('pages.admin.managetask', compact(
             'project',
             'employees',
@@ -1036,7 +1197,15 @@ User Management Methods (Simplified)
             'assigned_to' => 'required|exists:users,id',
             'title'       => 'required|string|max:255',
             'priority'    => 'required|in:low,medium,high',
-            'deadline'    => 'required|date|after_or_equal:' . $project->start_date,
+            'startdate'   => 'required|date|after_or_equal:' . $project->start_date,
+            'deadline'    => [
+                'required',
+                'date',
+                'after_or_equal:' . $project->start_date,
+                'before_or_equal:' . $project->end_date,
+                'after_or_equal:startdate',
+            ],
+            // 'deadline'    => 'required|date|after_or_equal:' . $project->start_date,
             'description' => 'nullable|string'
         ]);
 
@@ -1045,6 +1214,7 @@ User Management Methods (Simplified)
             'assigned_to'  => $request->assigned_to,
             'title'        => $request->title,
             'priority'     => $request->priority,
+            'start_date'  => $request->startdate,
             'deadline'     => $request->deadline,
             'description'  => $request->description,
             'status'       => 'Pending',
@@ -1066,7 +1236,14 @@ User Management Methods (Simplified)
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'priority'    => 'required|in:low,medium,high',
-            'deadline'    => 'required|date|after_or_equal:' . $project->start_date,
+            'startdate'   => 'required|date|after_or_equal:' . $project->start_date,
+            'deadline'    => [
+                'required',
+                'date',
+                'after_or_equal:startdate',
+                'before_or_equal:' . $project->end_date,
+            ],
+            // 'deadline'    => 'required|date|after_or_equal:' . $project->start_date,
             'assigned_to' => 'required|exists:users,id',
             'status'      => 'nullable|in:Pending,On Progress,Completed,Revision'
         ]);
@@ -1075,6 +1252,8 @@ User Management Methods (Simplified)
             'title'       => $request->title,
             'description' => $request->description,
             'priority'    => $request->priority,
+
+            'start_date'  => $request->startdate,
             'deadline'    => $request->deadline,
             'assigned_to' => $request->assigned_to,
             'status'      => $request->status ?? $task->status
@@ -1101,7 +1280,422 @@ User Management Methods (Simplified)
         ]);
     }
 
+    /**
+     * Halaman Review Submission untuk tugas tertentu
+     */
+    public function taskReview($project_id, $task_id)
+    {
+        $userId = Auth::id();
 
+        // Ambil project dan task
+        $project = Project::with('manager')->findOrFail($project_id);
+        $task = Task::with(['assignee', 'creator'])->findOrFail($task_id);
+
+        // Ambil SEMUA submission untuk tugas ini (urut dari yang terbaru)
+        $submissions = TaskSubmission::with(['employee'])
+            ->where('task_id', $task_id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Ambil submission yang pending (untuk ditampilkan di card utama)
+        $pendingSubmission = $submissions->where('status', 'pending')->first();
+
+        return view('pages.admin.submissions.review', compact(
+            'project',
+            'task',
+            'submissions',
+            'pendingSubmission'
+        ));
+    }
+
+    /**
+     * Proses review submission
+     */
+    public function reviewSubmission(Request $request)
+    {
+        $request->validate([
+            'submission_id' => 'required|exists:task_submissions,id',
+            'status' => 'required|in:approved,rejected',
+            'review_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $userId = Auth::id();
+        $userType = Auth::user()->type;
+        $submission = TaskSubmission::with(['task', 'task.project'])->findOrFail($request->submission_id);
+
+        // Validasi akses
+        if ($userType == 2 && $submission->task->project->manager_id != $userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke submission ini!'
+            ], 403);
+        }
+
+        // Cek apakah submission masih pending
+        if ($submission->status != 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Submission ini sudah direview sebelumnya.'
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update submission
+            $submission->update([
+                'status' => $request->status == 'approved' ? 'reviewed' : 'rejected',
+                'review_notes' => $request->review_notes,
+                'reviewed_by' => Auth::id(),
+                'reviewed_at' => now(),
+            ]);
+
+            // Jika disetujui, update status tugas menjadi Completed
+            if ($request->status == 'approved') {
+                $submission->task->update([
+                    'status' => 'Completed'
+                ]);
+
+                // Update progress project
+                $this->updateProjectProgress($submission->task->project_id);
+            }
+
+            DB::commit();
+
+            $route = $userType == 1 ? 'admin.tasks.manage' : 'manager.tasks.manage';
+
+            return response()->json([
+                'success' => true,
+                'message' => $request->status == 'approved'
+                    ? '✅ Submission disetujui! Tugas selesai.'
+                    : '❌ Submission ditolak.',
+                'redirect_url' => route($route, $submission->task->project_id)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update progress project
+     */
+    // private function updateProjectProgress($projectId)
+    // {
+    //     $tasks = Task::where('project_id', $projectId)->get();
+    //     $totalWeight = $tasks->sum('weight');
+    //     $completedWeight = $tasks->where('status', 'Completed')->sum('weight');
+
+    //     $progress = $totalWeight > 0 ? round(($completedWeight / $totalWeight) * 100) : 0;
+
+    //     Project::where('id', $projectId)->update(['progress' => $progress]);
+    // }
+    private function updateProjectProgress($projectId)
+    {
+        $total = Task::where('project_id', $projectId)->count();
+        $completed = Task::where('project_id', $projectId)->where('status', 'Completed')->count();
+
+        $progress = $total > 0 ? round(($completed / $total) * 100) : 0;
+
+        Project::where('id', $projectId)->update(['progress' => $progress]);
+
+        // Update status proyek
+        if ($progress == 100) {
+            Project::where('id', $projectId)->update(['status' => 'Completed']);
+        } elseif ($progress > 0) {
+            Project::where('id', $projectId)->update(['status' => 'On Progress']);
+        }
+    }
+
+    public function updateTaskStatus(Request $request)
+    {
+        $request->validate([
+            'task_id' => 'required|exists:tasks,id',
+            'status' => 'required|in:On Progress,Review,Completed,Rejected'
+        ]);
+
+        $user = Auth::user();
+        $task = Task::with('project')->findOrFail($request->task_id);
+
+        if ($user->type == 0) { // Blokir Karyawan
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan tidak memiliki akses untuk mengubah status tugas.'
+            ], 403);
+        }
+
+        if ($user->type == 2) { // Cek Manager
+            if ($task->project->manager_id != $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke proyek tugas ini!'
+                ], 403);
+            }
+        }
+
+        $task->update(['status' => $request->status]);
+
+        // Update progress proyek
+        $this->updateProjectProgress($task->project_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status tugas berhasil diperbarui menjadi ' . $request->status
+        ]);
+    }
+
+    public function updateReview(Request $request)
+    {
+        $request->validate([
+            'submission_id' => 'required|exists:task_submissions,id',
+            'review_notes' => 'nullable|string|max:1000'
+        ]);
+
+        $user = Auth::user();
+        $submission = TaskSubmission::with('task.project')->findOrFail($request->submission_id);
+        $review = $submission->review;
+
+        if (!$review) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Review tidak ditemukan untuk submission ini.'
+            ], 404);
+        }
+
+        if ($user->type == 0) { // Blokir Karyawan
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda (Karyawan) tidak memiliki akses untuk mengubah feedback.'
+            ], 403);
+        }
+
+        if ($user->type == 2) { // Cek Manager
+            if ($submission->task->project->manager_id != $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke submission ini!'
+                ], 403);
+            }
+        }
+        // Jika user type == 1 (Admin), maka langsung diizinkan tanpa pengecekan.
+
+        // (Pastikan kolom di database bernama 'notes' atau sesuaikan)
+        $review->update(['notes' => $request->review_notes]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Feedback review berhasil diperbarui.'
+        ]);
+    }
+
+
+    public function addReviewFeedback(Request $request)
+    {
+        $request->validate([
+            'submission_id' => 'required|exists:task_submissions,id',
+            'feedback_notes' => 'required|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+        $userId = $user->id;
+        $submission = TaskSubmission::with('task.project')->findOrFail($request->submission_id);
+
+        // ===========================================
+        // PERBAIKAN LOGIKA AKSES (Hak Akses)
+        // Asumsi Role: 0 = Karyawan, 1 = Admin, 2 = Manager
+        // ===========================================
+
+        // 1. Blokir Karyawan (type 0)
+        if ($user->type == 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda (Karyawan) tidak memiliki hak akses untuk memberikan feedback.'
+            ], 403);
+        }
+
+        // 2. Cek Akses Khusus Manager (type 2)
+        // Jika Admin (type 1), logika ini tidak akan dijalankan, sehingga Admin BISA komen di mana pun!
+        if ($user->type == 2 && $submission->task->project->manager_id != $userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke submission ini!'
+            ], 403);
+        }
+        // ===========================================
+        // SELESAI PERBAIKAN
+        // ===========================================
+
+        // Cek apakah sudah ada review
+        if ($submission->review()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Submission ini sudah memiliki feedback.'
+            ], 422);
+        }
+
+        // Simpan review
+        TaskReview::create([
+            'submission_id' => $request->submission_id,
+            'manager_id' => $userId, // Kolom ini disimpan user_id (bisa Admin atau Manager)
+            'feedback_notes' => $request->feedback_notes,
+            'status' => 'accepted', // default, tidak mempengaruhi status tugas
+            'reviewed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Feedback berhasil ditambahkan!'
+        ]);
+    }
+
+    // Halaman kalender
+    public function calendar(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+        $month = $request->input('month', date('m'));
+        return view('pages.admin.calendar', compact('year', 'month'));
+    }
+
+    // Ambil data buat halaman calender
+    public function calendarData(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+        $month = $request->input('month', date('m'));
+
+        // Admin melihat semua proyek
+        $projects = Project::pluck('id');
+
+        // Tentukan rentang bulan yang sedang dilihat
+        $monthStart = Carbon::create($year, $month, 1)->startOfDay();
+        $monthEnd = Carbon::create($year, $month, 1)->endOfMonth()->endOfDay();
+
+        // Ambil tugas yang overlap dengan bulan ini
+        $tasks = Task::whereIn('project_id', $projects)
+            ->where(function ($query) use ($monthStart, $monthEnd) {
+                $query->where('start_date', '<=', $monthEnd)
+                    ->where('deadline', '>=', $monthStart);
+            })
+            ->with(['project', 'assignee'])
+            ->get();
+
+        $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
+        $days = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date = Carbon::create($year, $month, $d)->format('Y-m-d');
+            $days[$d] = [
+                'date' => $date,
+                'day' => $d,
+                'dayName' => Carbon::create($year, $month, $d)->isoFormat('dddd'),
+            ];
+        }
+
+        // Prioritas yang diinginkan (Urutan kiri ke kanan: Low, Medium, High)
+        $priorityOrder = ['low', 'medium', 'high'];
+        $eventsByPriority = [];
+        $totalRowsByPriority = [];
+
+        foreach ($priorityOrder as $priority) {
+            // Filter tasks berdasarkan prioritas saat ini
+            $filteredTasks = $tasks->filter(function ($task) use ($priority) {
+                return $task->priority === $priority;
+            })->values();
+
+            // Persiapkan data event
+            $events = [];
+            foreach ($filteredTasks as $task) {
+                $start = Carbon::parse($task->start_date);
+                $end = Carbon::parse($task->deadline);
+
+                $startCol = ($start->month == $month) ? $start->day : 1;
+                $endCol = ($end->month == $month) ? $end->day : $daysInMonth;
+
+                if ($startCol < 1) $startCol = 1;
+                if ($endCol > $daysInMonth) $endCol = $daysInMonth;
+
+                $events[] = [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'project' => $task->project->title,
+                    'description' => $task->description,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'assignee' => $task->assignee->name ?? '-',
+                    'start_col' => $startCol,
+                    'end_col' => $endCol,
+                ];
+            }
+
+            // Gunakan fungsi groupTasksByRow untuk menangani tumpang tindih di dalam satu prioritas
+            $groupedRows = $this->groupTasksByRow($events);
+            $totalRows = count($groupedRows);
+
+            // Ratakan array dan tambahkan row_index
+            $flattenedEvents = [];
+            foreach ($groupedRows as $rowIdx => $row) {
+                foreach ($row as $task) {
+                    $task['row_index'] = $rowIdx;
+                    $flattenedEvents[] = $task;
+                }
+            }
+
+            $eventsByPriority[$priority] = $flattenedEvents;
+            $totalRowsByPriority[$priority] = $totalRows;
+        }
+
+        return response()->json([
+            'days' => array_values($days),
+            'events_by_priority' => $eventsByPriority, // Data event per prioritas
+            'total_rows_by_priority' => $totalRowsByPriority, // Maks overlap per kolom
+            'monthLabel' => Carbon::create($year, $month, 1)->format('F Y'),
+            'year' => $year,
+            'month' => $month,
+        ]);
+    }
+
+
+    // Fungsi groupTasksByRow milik Anda (sudah benar, tapi saya tambahkan sorting agar rapi)
+    private function groupTasksByRow($tasks)
+    {
+        if (empty($tasks)) return [];
+
+        // Urutkan berdasarkan start_col, lalu end_col descending (durasi panjang dulu)
+        usort($tasks, function($a, $b) {
+            if ($a['start_col'] == $b['start_col']) {
+                return $b['end_col'] - $a['end_col'];
+            }
+            return $a['start_col'] - $b['start_col'];
+        });
+
+        $rows = [];
+        foreach ($tasks as $task) {
+            $placed = false;
+            for ($i = 0; $i < count($rows); $i++) {
+                $conflict = false;
+                foreach ($rows[$i] as $existing) {
+                    // Cek tumpang tindih
+                    if (!($task['end_col'] < $existing['start_col'] || $task['start_col'] > $existing['end_col'])) {
+                        $conflict = true;
+                        break;
+                    }
+                }
+                if (!$conflict) {
+                    $rows[$i][] = $task;
+                    $placed = true;
+                    break;
+                }
+            }
+            if (!$placed) {
+                $rows[] = [$task];
+            }
+        }
+        return $rows;
+    }
+
+    // Ini yg biasa, jgn ganti
     public function adminChangePassword()
     {
         return view('pages.admin.change_password');

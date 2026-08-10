@@ -49,8 +49,8 @@
             <form method="POST" action="{{ route('admin.hierarchy.store') }}" id="assignManagerForm">
                 @csrf
                 <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title" id="assignManagerModalLabel">Atur Manajer Karyawan</h5>
+                    <div class="modal-header bg-success">
+                        <h5 class="modal-title text-white" id="assignManagerModalLabel">Atur Manajer Karyawan</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">

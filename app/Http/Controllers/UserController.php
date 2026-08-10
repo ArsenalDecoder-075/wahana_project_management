@@ -42,7 +42,35 @@ class UserController extends Controller
                 : 0;
         }
 
-        return view('pages.user.dashboard.userHome', compact('projects'));
+        // ===== GLOBAL STATISTICS FOR CHARTS =====
+        // Get all tasks assigned to this user
+        $allTasks = Task::where('assigned_to', $userId)->get();
+
+        // Status distribution (for pie chart)
+        $statusStats = [
+            'Pending' => $allTasks->where('status', 'Pending')->count(),
+            'On Progress' => $allTasks->where('status', 'On Progress')->count(),
+            'Review' => $allTasks->where('status', 'Review')->count(),
+            'Completed' => $allTasks->where('status', 'Completed')->count(),
+            'Rejected' => $allTasks->where('status', 'Rejected')->count(),
+        ];
+
+        // Project progress for chart
+        $projectChartData = $projects->map(function($project) {
+            return [
+                'name' => $project->title,
+                'total' => $project->total_tasks,
+                'completed' => $project->completed_tasks,
+                'progress' => $project->progress_percentage
+            ];
+        });
+
+        return view('pages.user.dashboard.userHome', compact(
+            'projects',
+            'statusStats',
+            'projectChartData',
+
+        ));
     }
 
     /*------------------------------------------
@@ -112,29 +140,165 @@ class UserController extends Controller
         return view('pages.user.tasks.index', compact('tasks'));
     }
 
+    // public function updateTaskStatus(Request $request)
+    // {
+    //     $request->validate([
+    //         'task_id' => 'required|exists:tasks,id',
+    //         'status' => 'required|in:Pending,On Progress,Completed'
+    //     ]);
+
+    //     $task = Task::findOrFail($request->task_id);
+
+    //     // Cek apakah tugas ini milik user yang login
+    //     if ($task->assigned_to != Auth::id()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Anda tidak memiliki akses untuk mengubah tugas ini.'
+    //         ], 403);
+    //     }
+
+    //     $task->status = $request->status;
+    //     $task->save();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Status tugas berhasil diupdate.'
+    //     ]);
+    // }
+
+    /**
+     * Update status tugas (Pending -> On Progress -> Completed)
+     */
+    // public function updateTaskStatus(Request $request)
+    // {
+    //     $request->validate([
+    //         'task_id' => 'required|exists:tasks,id',
+    //         'status' => 'required|in:Pending,On Progress,Completed'
+    //     ]);
+
+    //     $userId = Auth::id();
+    //     $task = Task::findOrFail($request->task_id);
+
+    //     // ✅ Validasi: hanya user yang ditugaskan yang bisa update status
+    //     if ($task->assigned_to != $userId) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Anda tidak memiliki akses untuk mengubah status tugas ini!'
+    //         ], 403);
+    //     }
+
+    //     // ✅ Validasi: hanya bisa maju, tidak bisa mundur
+    //     $statusOrder = ['Pending' => 0, 'On Progress' => 1, 'Completed' => 2];
+    //     $currentStatus = $statusOrder[$task->status] ?? 0;
+    //     $newStatus = $statusOrder[$request->status] ?? 0;
+
+    //     if ($newStatus < $currentStatus) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Tidak bisa mengubah status ke status sebelumnya!'
+    //         ], 422);
+    //     }
+
+    //     // Update status
+    //     $task->update([
+    //         'status' => $request->status
+    //     ]);
+
+    //     // ✅ Update progress project secara otomatis
+    //     // $this->updateProjectProgress($task->project_id);
+    //     // gk pake progress ini, dinamik langsung aja dengan (x) selesai / (x)total tugas
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Status tugas berhasil diupdate menjadi ' . $request->status . '!',
+    //         'new_status' => $request->status
+    //     ]);
+    // }
+
+    /**
+     * Update status tugas (Pending -> On Progress) untuk user biasa
+     * (Hanya bisa dari Pending ke On Progress)
+     */
     public function updateTaskStatus(Request $request)
     {
         $request->validate([
             'task_id' => 'required|exists:tasks,id',
-            'status' => 'required|in:Pending,On Progress,Completed'
+            'status' => 'required|in:On Progress,Review,Completed,Rejected'
         ]);
 
+        $userId = Auth::id();
         $task = Task::findOrFail($request->task_id);
 
-        // Cek apakah tugas ini milik user yang login
-        if ($task->assigned_to != Auth::id()) {
+        // Pastiin user yang ditugaskan yang bisa update status
+        if ($task->assigned_to != $userId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk mengubah tugas ini.'
+                'message' => 'Anda tidak memiliki akses untuk mengubah status tugas ini!'
             ], 403);
         }
 
-        $task->status = $request->status;
-        $task->save();
+        // Validasi transisi status yang diizinkan untuk user
+        $allowedTransitions = [
+            'Pending' => ['On Progress'],
+            'On Progress' => ['Review'],
+            'Review' => [], // User tidak bisa mengubah dari Review
+            'Rejected' => ['On Progress'],
+            'Completed' => [], // User tidak bisa mengubah dari Completed
+        ];
+
+        $currentStatus = $task->status;
+        $newStatus = $request->status;
+
+        // Cek apakah transisi diizinkan
+        if (!in_array($newStatus, $allowedTransitions[$currentStatus] ?? [])) {
+            $allowed = !empty($allowedTransitions[$currentStatus])
+                ? implode(', ', $allowedTransitions[$currentStatus])
+                : 'tidak ada';
+
+            return response()->json([
+                'success' => false,
+                'message' => "Status saat ini adalah '{$currentStatus}'. Anda hanya dapat mengubah ke: {$allowed}."
+            ], 403);
+        }
+
+        // Jika status 'Review', kirim notifikasi ke manager
+        // if ($newStatus == 'Review') {
+        //     Kirim notifikasi ke manager
+        //     Contoh: event(new TaskReviewed($task));
+        //     Atau simpan di tabel notifikasi
+        //     Notification::send($task->project->manager, new TaskReviewNotification($task));
+        // }
+
+        $task->update([
+            'status' => $newStatus
+        ]);
+
+
+
+        // Batasin dari Pending ke On Progress untuk user biasa
+        // if ($task->status == 'Pending' && $request->status == 'On Progress') {
+        // } else {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Anda hanya dapat mengubah status dari Pending ke On Progress. Untuk menyelesaikan tugas, hubungi manajer Anda.'
+        //     ], 403);
+        // }
+
+        // Jika status 'Review', kirim notifikasi ke manager
+        // if ($request->status == 'Review') {
+        //     Kirim notifikasi ke manager (bisa via email, database, atau event)
+        //     Contoh: event(new TaskReviewed($task));
+        //     Atau simpan di tabel notifikasi
+        // }
+
+        // $task->update([
+        //     'status' => $request->status
+        // ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Status tugas berhasil diupdate.'
+            'message' => 'Status tugas berhasil diupdate menjadi ' . $newStatus . '!',
+            'new_status' => $request->status
         ]);
     }
 
@@ -143,7 +307,7 @@ class UserController extends Controller
         $user = Auth::user();
 
         // Ambil semua proyek yang memiliki tugas yang ditugaskan ke user ini
-        $projects = \App\Models\Project::whereHas('tasks', function($query) use ($user) {
+        $projects = Project::whereHas('tasks', function($query) use ($user) {
             $query->where('assigned_to', $user->id);
         })
         ->with(['tasks' => function($query) use ($user) {

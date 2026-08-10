@@ -43,8 +43,7 @@ Route::middleware(['auth', 'user-access:user'])->prefix('user')->name('user.')->
     // === Pelaksanaan Tugas (Karyawan) ===
     Route::get('/tasks', [UserController::class, 'tasksIndex'])->name('tasks.index'); // Halaman daftar tugas
     Route::post('/tasks/submit', [UserController::class, 'submitTask'])->name('tasks.submit'); // Proses submit file tugas
-    Route::post('/task/update-status', [UserController::class, 'updateTaskStatus'])->name('task.updateStatus');
-
+    Route::post('/tasks/update-status', [UserController::class, 'updateTaskStatus'])->name('tasks.updateStatus'); //Ubah status dari pending ke on progress ke completed
     // === Pelaksanaan Tugas (Karyawan) ===
     Route::get('/tasks', [UserController::class, 'tasksIndex'])->name('tasks.index'); // Halaman daftar tugas
     Route::get('/tasks/{id}', [UserController::class, 'taskDetail'])->name('task.detail'); // Halaman detail tugas
@@ -102,9 +101,15 @@ Route::middleware(['auth', 'user-access:admin'])->prefix('admin')->name('admin.'
     Route::post('/tasks/update', [AdminController::class, 'updateTask'])->name('tasks.update');
     Route::post('/tasks/delete', [AdminController::class, 'deleteTask'])->name('tasks.delete');
 
-    // === Review & Progress ===
-    Route::get('/submissions', [AdminController::class, 'submissionsIndex'])->name('submissions.index');
-    Route::post('/reviews/store', [AdminController::class, 'storeReview'])->name('reviews.store');
+    // === Review Submission ===
+    Route::get('/projects/{project_id}/tasks/{task_id}/review', [AdminController::class, 'taskReview'])->name('tasks.review');
+    Route::post('/submissions/review', [AdminController::class, 'reviewSubmission'])->name('submissions.review');
+
+    Route::post('submissions/review-feedback', [AdminController::class, 'addReviewFeedback'])->name('submissions.review-feedback');
+    Route::post('tasks/update-status', [AdminController::class, 'updateTaskStatus'])->name('tasks.update-status');
+
+    Route::get('/calendar', [AdminController::class, 'calendar'])->name('calendar');
+    Route::get('/calendar/data', [AdminController::class, 'calendarData'])->name('calendar.data');
 
     // === Profile ===
     Route::get('/profile', [AdminController::class, 'adminProfile'])->name('profile');
@@ -149,8 +154,25 @@ Route::middleware(['auth', 'user-access:manager'])->prefix('manager')->name('man
     Route::post('/tasks/store', [ManagerController::class, 'storeTask'])->name('tasks.store');
     Route::post('/tasks/update', [ManagerController::class, 'updateTask'])->name('tasks.update');
     Route::post('/tasks/delete', [ManagerController::class, 'deleteTask'])->name('tasks.delete');
+    Route::post('/tasks/update-status', [UserController::class, 'updateTaskStatus'])->name('tasks.updateStatus');
 
     // === Review & Progress ===
     Route::get('/submissions', [ManagerController::class, 'submissionsIndex'])->name('submissions.index'); // Halaman daftar hasil kerja bawahan
     Route::post('/reviews/store', [ManagerController::class, 'storeReview'])->name('reviews.store'); // Proses manager kasih nilai/review
+
+    // === Review Submission ===
+    Route::get('/projects/{project_id}/tasks/{task_id}/review', [ManagerController::class, 'taskReview'])->name('tasks.review');
+    Route::post('/submissions/review', [ManagerController::class, 'reviewSubmission'])->name('submissions.review');
+
+    // Route::post('tasks/update-status', [ManagerController::class, 'updateTaskStatus'])->name('tasks.update-status');
+    Route::post('reviews/update', [ManagerController::class, 'updateReview'])->name('reviews.update');
+
+    Route::get('tasks/{project_id}/review/{task_id}', [ManagerController::class, 'taskReview'])->name('tasks.review');
+    Route::post('submissions/review-feedback', [ManagerController::class, 'addReviewFeedback'])->name('submissions.review-feedback'); //Ini yang dipake
+
+    // ✅ Route untuk ubah status tugas (terpisah)
+    Route::post('tasks/update-status', [ManagerController::class, 'updateTaskStatus'])->name('tasks.update-status');
+
+    Route::get('/calendar', [ManagerController::class, 'calendar'])->name('calendar');
+    Route::get('/calendar/data', [ManagerController::class, 'calendarData'])->name('calendar.data');
 });

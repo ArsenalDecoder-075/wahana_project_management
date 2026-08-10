@@ -14,7 +14,8 @@ class Task extends Model
         'description',
         'priority',
         'status',
-        'deadline'
+        'deadline',
+        'start_date',
     ];
 
     public function project() {
@@ -29,8 +30,13 @@ class Task extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function submissions() {
-        return $this->hasMany(TaskSubmission::class);
+    // public function submissions() {
+    //     return $this->hasMany(TaskSubmission::class);
+    // }
+
+    public function submissions()
+    {
+        return $this->hasMany(TaskSubmission::class, 'task_id');
     }
 
     public function employee()

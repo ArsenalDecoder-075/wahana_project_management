@@ -7,7 +7,7 @@
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <div class="title mb-30">
-                        <h2>Manajemen Proyek & Tugas</h2>
+                        <h2>Manajemen Proyek</h2>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -15,7 +15,7 @@
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
                                 <li class="breadcrumb-item">
-                                    <a href="{{ route('manager.dashboard') }}">Admin</a>
+                                    <a href="{{ route('manager.dashboard') }}">Manager</a>
                                 </li>
                                 <li class="breadcrumb-item active" aria-current="page">
                                     Proyek
