@@ -111,6 +111,14 @@ Route::middleware(['auth', 'user-access:admin'])->prefix('admin')->name('admin.'
     Route::get('/calendar', [AdminController::class, 'calendar'])->name('calendar');
     Route::get('/calendar/data', [AdminController::class, 'calendarData'])->name('calendar.data');
 
+    // Category
+    Route::get('/categories', [AdminController::class, 'manageCategory'])->name('manage.categories');
+    Route::post('/store-category', [AdminController::class, 'storeCategory'])->name('store.category');
+    Route::put('/edit-category', [AdminController::class, 'editCategory'])->name('edit.category');
+    Route::delete('/delete-category', [AdminController::class, 'deleteCategory'])->name('delete.category');
+    Route::get('/get-category', [AdminController::class, 'getCategory'])->name('get.category');
+    Route::patch('/toggle-category-status', [AdminController::class, 'toggleStatus'])->name('toggle.category.status');
+
     // === Profile ===
     Route::get('/profile', [AdminController::class, 'adminProfile'])->name('profile');
 

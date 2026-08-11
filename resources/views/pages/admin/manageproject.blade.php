@@ -54,13 +54,18 @@
                                 </select>
                             </div>
                             <div class="mb-3">
+                                <label for="category_id" class="form-label">Kategori<span class="text-red">*</span></label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="" selected disabled>-- Pilih Kategori --</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label for="description" class="form-label">Deskripsi Proyek</label>
                                 <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                             </div>
-                            {{-- <div class="mb-3">
-                                <label for="start_date" class="form-label">Tanggal Mulai <span class="text-red">*</span></label>
-                                <input type="date" class="form-control" id="start_date" name="start_date" required>
-                            </div> --}}
                             <div class="mb-3">
                                 <label for="start_date" class="form-label">Tanggal Mulai <span class="text-red">*</span></label>
                                 <input type="date" class="form-control" id="start_date" name="start_date" value="{{ now()->format('Y-m-d') }}" required>
@@ -97,6 +102,11 @@
                             </div>
 
                             <div class="mb-3">
+                                <label>Deskripsi Proyek</label>
+                                <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                            </div>
+
+                            <div class="mb-3">
                                 <label>Manager</label>
                                 <select class="form-select" id="edit_manager_id" name="manager_id" required>
                                     @foreach($managers as $mgr)
@@ -105,6 +115,14 @@
                                 </select>
                             </div>
 
+                            <div class="mb-3">
+                                <label>Kategori Proyek</label>
+                                <select class="form-select" id="edit_category_id" name="category_id" required>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="row">
                                 <div class="col-6 mb-3">
                                     <label>Mulai</label>
@@ -210,10 +228,10 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Nama Proyek</th>
+                                <th>Proyek</th>
                                 <th>Penanggung Jawab</th>
+                                <th>Kategori Proyek</th>
                                 <th>Durasi Kontrak</th>
-                                {{-- <th>Progres Sistem</th> --}}
                                 <th>Total Tasks</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
@@ -260,10 +278,11 @@
                 ajax: "{{ route('admin.manage.project') }}",
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'title', name: 'title' },
-                    { data: 'manager', name: 'manager' }, // Relasi user pencipta proyek
+                    { data: 'title', name: 'title' }, // Ini sudah merangkap judul & deskripsi
+                    { data: 'manager', name: 'manager' },
+                    { data: 'category_name', name: 'category_name' },
                     { data: 'duration', name: 'duration' },
-                    { data: 'total_tasks', name: 'total_tasks' },
+                    { data: 'total_tasks', name: 'total_tasks', orderable: false, searchable: false },
                     { data: 'status', name: 'status' },
                     { data: 'action', name: 'action', orderable: false, searchable: false }
                 ]
@@ -343,41 +362,92 @@
             });
 
             $(document).on('click', '.editProjectBtn', function() {
-                let id = $(this).data('id');
-                // Isi input modal edit (sesuaikan ID input Anda)
-                $('#edit_project_id').val(id);
-                $('#edit_title').val($(this).data('title'));
-                $('#edit_description').val($(this).data('description'));
-                $('#edit_start_date').val($(this).data('start'));
-                $('#edit_end_date').val($(this).data('end'));
-                $('#edit_manager_id').val($(this).data('manager-id')).trigger('change');
+                const button = $(this);
+
+                $('#edit_project_id').val(button.data('id'));
+                $('#edit_title').val(button.data('title') || '');
+                $('#edit_description').val(button.data('description') || '');
+                $('#edit_start_date').val(button.data('start') || '');
+                $('#edit_end_date').val(button.data('end') || '');
+
+                $('#edit_manager_id')
+                    .val(button.data('manager-id'))
+                    .trigger('change');
+
+                $('#edit_category_id')
+                    .val(button.data('category-id'))
+                    .trigger('change');
+
+                $('#edit_status')
+                    .val(button.data('status') || 'Pending')
+                    .trigger('change');
 
                 $('#editProjectModal').modal('show');
             });
 
             $('#editProjectForm').on('submit', function(e) {
-            e.preventDefault();
+                e.preventDefault();
 
-            const form = $(this);
-            $.ajax({
-                url: form.attr('action'),
-                method: 'POST',
-                data: form.serialize(),
-                success: function(response) {
-                    // 1. Sembunyikan modal
-                    $('#editProjectModal').modal('hide');
+                const form = $(this);
+                const submitBtn = form.find('button[type="submit"]');
+                const originalText = submitBtn.text();
 
-                    // 2. Refresh tabel DataTables
-                    $('#projects-table').DataTable().ajax.reload();
+                submitBtn.prop('disabled', true).text('Menyimpan...');
 
-                    // 3. Tampilkan notifikasi (gunakan alert atau library notifikasi Anda)
-                    // alert(response.message);
-                },
-                error: function(xhr) {
-                    alert('Terjadi kesalahan saat menyimpan.');
-                }
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+
+                    success: function(response) {
+                        $('#editProjectModal').modal('hide');
+
+                        $('#projects-table')
+                            .DataTable()
+                            .ajax.reload(null, false);
+
+                        showSuccessMessage(
+                            response.message || 'Data proyek berhasil diperbarui!'
+                        );
+                    },
+
+                    error: function(xhr) {
+                        console.error('Update Project Error:', xhr);
+
+                        if (xhr.status === 422 && xhr.responseJSON) {
+                            let msg = 'Validasi Gagal:<br>';
+
+                            if (xhr.responseJSON.errors) {
+                                Object.keys(xhr.responseJSON.errors).forEach(function(key) {
+                                    msg += '- ' +
+                                        xhr.responseJSON.errors[key][0] +
+                                        '<br>';
+                                });
+                            } else if (xhr.responseJSON.message) {
+                                msg += xhr.responseJSON.message;
+                            }
+
+                            showErrorMessage(msg);
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            showErrorMessage(
+                                'Gagal menyimpan proyek: ' +
+                                xhr.responseJSON.message
+                            );
+                        } else {
+                            showErrorMessage(
+                                'Gagal menyimpan proyek. HTTP Status: ' +
+                                xhr.status
+                            );
+                        }
+                    },
+
+                    complete: function() {
+                        submitBtn
+                            .prop('disabled', false)
+                            .text(originalText);
+                    }
+                });
             });
-        });
 
             // EVENT DELETE
             $(document).on('click', '.deleteProjectBtn', function() {

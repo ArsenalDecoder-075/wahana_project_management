@@ -12,7 +12,7 @@
     /* --- HEADER TANGGAL (kolom atas) --- */
     .calendar-header-row {
         display: flex;
-        border-bottom: 2px solid #dee2e6;
+        border-bottom: 3px solid #cbd5e1;
         background: #f8f9fa;
         font-weight: bold;
         height: 40px;
@@ -28,7 +28,7 @@
         font-size: 14px;
         color: #495057;
         background: #fff;
-        border-right: 2px solid #dee2e6;
+        border-right: 3px solid #cbd5e1;
     }
     .header-day {
         flex: 1;
@@ -45,9 +45,9 @@
     /* --- BARIS PRIORITAS --- */
     .priority-row {
         display: flex;
-        align-items: stretch; /* ← kunci: label dan area tugas sama tinggi */
-        border-bottom: 1px solid #f0f0f0;
-        height: 60px; /* sama dengan rowHeight di JavaScript */
+        align-items: stretch;
+        border-bottom: 1px solid #e5e7eb;
+        height: 60px;
         position: relative;
         background: #fff;
     }
@@ -60,16 +60,16 @@
         display: flex;
         align-items: center;
         background: #f8f9fa;
-        border-right: 2px solid #e9ecef;
+        border-right: 3px solid #cbd5e1;
         z-index: 5;
         height: 100%;
+        box-sizing: border-box;
     }
-    .priority-label.low { background: #e0f7fa; color: #006064; }
-    .priority-label.medium { background: #fff9c4; color: #f57f17; }
+
+    /* --- WARNA PRIORITAS --- */
     .priority-label.high { background: #ffcdd2; color: #b71c1c; }
-    .priority-label.low { background: #e0f7fa; color: #006064; }
     .priority-label.medium { background: #fff9c4; color: #f57f17; }
-    .priority-label.high { background: #ffcdd2; color: #b71c1c; }
+    .priority-label.low { background: #e0f7fa; color: #006064; }
 
     /* --- AREA TUGAS DI DALAM BARIS --- */
     .task-area {
@@ -104,12 +104,11 @@
     }
     .task-block:hover {
         z-index: 20;
-        transform: scale(1.02);
         box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         filter: brightness(1.15);
     }
 
-    /* Warna status (sama seperti sebelumnya) */
+    /* Warna status */
     .status-pending { background: #ffc107; color: #212529; }
     .status-onprogress { background: #0d6efd; }
     .status-review { background: #6c757d; }
@@ -157,9 +156,9 @@
                 </button>
             </div>
         </div>
-        <div class="card-body p-0" style="overflow-x: auto;">
-            <div id="calendarContainer" class="calendar-wrapper">
-                {{-- Akan diisi oleh JavaScript --}}
+        <div class="card-body p-0" style="overflow: visible;">
+            <div id="calendarContainer" class="calendar-wrapper" style="overflow: visible;">
+                {{-- Kalender diisi oleh JavaScript --}}
             </div>
         </div>
     </div>
@@ -172,6 +171,58 @@
         <div class="legend-item"><span class="legend-color" style="background:#dc3545;"></span> Rejected</div>
     </div>
 </div>
+
+{{-- MODAL POPUP DETAIL TUGAS (BARU)            --}}
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="taskDetailModalLabel">
+                    <i class="fas fa-tasks me-2"></i> Detail Tugas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="fw-bold">Judul Tugas</h6>
+                        <p id="modalTaskTitle" class="fs-5 fw-semibold"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Proyek</h6>
+                        <p id="modalTaskProject"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Ditugaskan Kepada</h6>
+                        <p id="modalTaskAssignee"></p>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <h6 class="fw-bold">Deskripsi Tugas</h6>
+                        <p id="modalTaskDescription" class="text-muted" style="white-space: pre-wrap;"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-bold">Prioritas</h6>
+                        <p id="modalTaskPriority"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-bold">Status</h6>
+                        <p id="modalTaskStatus"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-bold">Durasi</h6>
+                        <p id="modalTaskDuration"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <a href="#" id="modalTaskDetailBtn" class="btn btn-primary">
+                    <i class="fas fa-eye me-1"></i> Lihat Detail Tugas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -181,19 +232,19 @@ $(document).ready(function() {
     let currentMonth = {{ $month }};
 
     const priorityLabels = {
-        low: 'Low Priority',
+        high: 'High Priority',
         medium: 'Medium Priority',
-        high: 'High Priority'
+        low: 'Low Priority'
     };
     const priorityColors = {
-        low: '#e0f7fa',
+        high: '#ffcdd2',
         medium: '#fff9c4',
-        high: '#ffcdd2'
+        low: '#e0f7fa'
     };
     const priorityTextColors = {
-        low: '#006064',
+        high: '#b71c1c',
         medium: '#f57f17',
-        high: '#b71c1c'
+        low: '#006064'
     };
 
     function renderCalendar(year, month) {
@@ -222,8 +273,7 @@ $(document).ready(function() {
 
         $('#monthLabel').text(monthLabel);
 
-        const rowHeight = 60; // tinggi setiap baris prioritas
-        const dayWidth = (100 / days.length).toFixed(4) + '%'; // lebar per tanggal
+        const rowHeight = 60;
 
         // --- 1. HEADER: Tanggal ---
         let headerHtml = `<div class="calendar-header-row">
@@ -236,8 +286,9 @@ $(document).ready(function() {
         headerHtml += `</div>`;
 
         // --- 2. BARIS PRIORITAS ---
-        const priorities = ['low', 'medium', 'high'];
+        const priorities = ['high', 'medium', 'low'];
         let bodyHtml = '';
+        let isFirstPriority = true;
 
         priorities.forEach(priority => {
             const tasks = eventsByPriority[priority] || [];
@@ -246,31 +297,32 @@ $(document).ready(function() {
             const bgLabel = priorityColors[priority];
             const textLabel = priorityTextColors[priority];
 
-            // Untuk setiap row_index (karena bisa overlap), kita buat baris terpisah
             for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
                 const tasksInRow = tasks.filter(t => t.row_index === rowIdx);
-                bodyHtml += `<div class="priority-row" style="height: ${rowHeight}px;">`;
-                // Label prioritas (hanya tampil di baris pertama, atau kita tampilkan di semua baris dengan indent)
+
+                let extraRowStyle = '';
+                if (rowIdx === 0 && !isFirstPriority) {
+                    extraRowStyle = 'border-top: 5px solid #cbd5e1;';
+                }
+
+                bodyHtml += `<div class="priority-row" style="height: ${rowHeight}px;${extraRowStyle}">`;
+
                 if (rowIdx === 0) {
                     bodyHtml += `<div class="priority-label ${priority}" style="background: ${bgLabel}; color: ${textLabel};">${label}</div>`;
                 } else {
-                    bodyHtml += `<div class="priority-label" style="background: #f8f9fa; color: #999; font-size: 12px;">&nbsp;</div>`;
+                    bodyHtml += `<div class="priority-label ${priority}" style="background: ${bgLabel}; color: ${textLabel};">&nbsp;</div>`;
                 }
 
-                // Area tugas
                 bodyHtml += `<div class="task-area" style="position: relative;">`;
 
-                // Render blok tugas di dalam task-area
                 tasksInRow.forEach(task => {
                     const startCol = task.start_col;
                     const endCol = task.end_col;
                     const duration = endCol - startCol + 1;
 
-                    // Hitung posisi kiri dan lebar berdasarkan tanggal
                     const leftPercent = ((startCol - 1) / days.length) * 100;
                     const widthPercent = (duration / days.length) * 100;
 
-                    // Warna status
                     let bgColor = '';
                     if (task.status === 'Pending') bgColor = '#ffc107';
                     else if (task.status === 'On Progress') bgColor = '#0d6efd';
@@ -280,29 +332,102 @@ $(document).ready(function() {
                     else bgColor = '#17a2b8';
 
                     const textColor = (task.status === 'Pending') ? '#212529' : '#fff';
-                    const tooltip = `Tugas: ${task.title}\nProyek: ${task.project}\nDurasi: ${duration} hari\nPekerja: ${task.assignee}\nStatus: ${task.status}`;
+                    const tooltip = `Proyek: ${task.project}\nTugas: ${task.title}\nDeskripsi: ${task.description}\nDurasi: ${duration} hari\nPekerja: ${task.assignee}\nStatus: ${task.status}`;
 
                     bodyHtml += `<div class="task-block status-${task.status.toLowerCase().replace(' ', '')}"
-                                    style="left: ${leftPercent}%; width: ${widthPercent}%; top: 4px; height: calc(100% - 8px); background: ${bgColor}; color: ${textColor};"
-                                    data-task-id="${task.id}"
-                                    title="${tooltip}">
-                                    ${task.title} (${duration}h)
-                                </div>`;
+                            style="left: ${leftPercent}%; width: ${widthPercent}%; top: 4px; height: calc(100% - 8px); background: ${bgColor}; color: ${textColor};"
+                            data-task-id="${task.id}"
+                            data-project-id="${task.project_id}"
+                            data-priority="${task.priority}"
+                            title="${tooltip}">
+                            ${task.title} (${duration}h)
+                        </div>`;
                 });
 
-                bodyHtml += `</div>`; // end task-area
-                bodyHtml += `</div>`; // end priority-row
+                bodyHtml += `</div>`;
+                bodyHtml += `</div>`;
             }
+
+            isFirstPriority = false;
         });
 
         $('#calendarContainer').html(headerHtml + bodyHtml);
 
-        // Event click pada task block
+        // EVENT KLIK TASK BLOCK (BUKA MODAL)
         $('.task-block').on('click', function() {
+            const projectId = $(this).data('project-id');
             const taskId = $(this).data('task-id');
-            if (taskId) {
-                alert('Task ID: ' + taskId + '\n' + $(this).attr('title'));
+            if (!taskId || !projectId) return;
+
+            // Ambil data dari atribut title (tooltip)
+            const fullTooltip = $(this).attr('title');
+            const lines = fullTooltip.split('\n');
+            let dataObj = {};
+
+            lines.forEach(line => {
+                const parts = line.split(': ');
+                if (parts.length === 2) {
+                    const key = parts[0].trim();
+                    const value = parts[1].trim();
+                    if (key === 'Proyek') dataObj.project = value;
+                    if (key === 'Tugas') dataObj.title = value;
+                    if (key === 'Deskripsi') dataObj.description = value;
+                    if (key === 'Durasi') dataObj.duration = value;
+                    if (key === 'Pekerja') dataObj.assignee = value;
+                    if (key === 'Status') dataObj.status = value;
+                }
+            });
+
+            const statusBg = $(this).css('background-color');
+
+            // Isi Modal
+            $('#modalTaskTitle').text(dataObj.title || 'Tidak ada judul');
+            $('#modalTaskProject').text(dataObj.project || '-');
+            $('#modalTaskAssignee').text(dataObj.assignee || '-');
+            $('#modalTaskDescription').text(dataObj.description || 'Tidak ada deskripsi.');
+            $('#modalTaskDuration').text(dataObj.duration || '-');
+
+            // Set Status badge
+            const statusHtml = `<span class="badge" style="background-color: ${statusBg}; color: #fff; padding: 5px 10px;">${dataObj.status || '-'}</span>`;
+            $('#modalTaskStatus').html(statusHtml);
+
+            // Set Prioritas badge
+            // const priorityLabel = $(this).closest('.priority-row').find('.priority-label').text().trim();
+            // let priorityBadgeClass = 'bg-secondary';
+            // if (priorityLabel.includes('High')) priorityBadgeClass = 'bg-danger';
+            // else if (priorityLabel.includes('Medium')) priorityBadgeClass = 'bg-warning';
+            // else if (priorityLabel.includes('Low')) priorityBadgeClass = 'bg-info';
+
+            // $('#modalTaskPriority').html(`<span class="badge ${priorityBadgeClass}">${priorityLabel}</span>`);
+
+            // Set Prioritas badge
+            // PERBAIKAN: Ambil langsung dari atribut data-priority, bukan dari closest row
+            const taskPriority = $(this).data('priority');
+
+            let priorityBadgeClass = 'bg-secondary';
+            let priorityLabelText = 'Unknown';
+
+            if (taskPriority === 'high') {
+                priorityBadgeClass = 'bg-danger';
+                priorityLabelText = 'High Priority';
+            } else if (taskPriority === 'medium') {
+                priorityBadgeClass = 'bg-warning';
+                priorityLabelText = 'Medium Priority';
+            } else if (taskPriority === 'low') {
+                priorityBadgeClass = 'bg-info';
+                priorityLabelText = 'Low Priority';
             }
+
+            $('#modalTaskPriority').html(`<span class="badge ${priorityBadgeClass}">${priorityLabelText}</span>`);
+            // PERBAIKAN URL: Bangun URL secara langsung (Hardcode string URL)
+            // /manager/tasks/{project_id}/review/{task_id} sama kayak web.php
+            const detailUrl = "/manager/tasks/" + projectId + "/review/" + taskId;
+
+            $('#modalTaskDetailBtn').attr('href', detailUrl);
+
+            // Tampilkan Modal
+            const myModal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+            myModal.show();
         });
     }
 

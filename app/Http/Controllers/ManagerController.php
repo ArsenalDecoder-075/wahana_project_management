@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\TaskSubmission;
 use App\Models\Task;
 use App\Models\TaskReview;
+use App\Models\Category;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -363,7 +364,7 @@ class ManagerController extends Controller
 
         if ($request->ajax()) {
             // ✅ Gunakan query builder tanpa ->get() untuk DataTables serverSide
-            $projects = Project::with('manager')
+            $projects = Project::with('manager', 'category')
                 ->where('manager_id', $managerId)
                 ->select('projects.*'); // Select semua kolom dari projects
 
@@ -375,15 +376,14 @@ class ManagerController extends Controller
                 ->addColumn('duration', function($row) {
                     return $row->start_date . ' s/d ' . $row->end_date;
                 })
-                // ->addColumn('progress', function($row) {
-                //     return '<div class="progress" style="height: 15px;">
-                //                 <div class="progress-bar bg-success" role="progressbar"
-                //                     style="width: '.$row->progress.'%"
-                //                     aria-valuenow="'.$row->progress.'"
-                //                     aria-valuemin="0"
-                //                     aria-valuemax="100">'.$row->progress.'%</div>
-                //             </div>';
-                // })
+                ->addColumn('title', function($row) {
+                    $title = '<div class="fw-bold text-dark mb-1">' . e($row->title) . '</div>';
+                    $description = '<div class="text-muted small">' . e($row->description) . '</div>';
+                    return $title . $description;
+                })
+                ->addColumn('category_name', function($row) {
+                    return '<span class="fw-bold">' . ($row->category?->name ?? 'Tidak Ada') . '</span>';
+                })
                 ->addColumn('total_tasks', function($row) {
                     $total = $row->tasks->count();
                     $completed = $row->tasks->where('status', 'Completed')->count();
@@ -417,6 +417,7 @@ class ManagerController extends Controller
                             data-description="'.$row->description.'"
                             data-start="'.$row->start_date.'"
                             data-end="'.$row->end_date.'"
+                            data-category-id="'.$row->category_id.'"
                             data-status="'.$row->status.'"
                             title="Edit Proyek">
                             <i class="lni lni-pencil"></i>
@@ -429,7 +430,7 @@ class ManagerController extends Controller
                         </button>
                     </div>';
                 })
-                ->rawColumns(['total_tasks', 'status_badge', 'action'])
+                ->rawColumns(['title', 'total_tasks', 'status_badge', 'category_name',  'action'])
                 ->make(true); // ✅ make(true) akan mengembalikan JSON response yang valid
         }
 
@@ -448,7 +449,9 @@ class ManagerController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('pages.manager.manageproject', compact('employees', 'managers'));
+        $categories = Category::where('is_active', true)->get(); // ✅ Gunakan nama yang tepat
+
+        return view('pages.manager.manageproject', compact('employees', 'managers', 'categories'));
     }
 
     public function storeProject(Request $request)
@@ -457,6 +460,7 @@ class ManagerController extends Controller
 
         $request->validate([
             'title'       => 'required|string|max:255',
+            'category_id'  => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'start_date'  => 'required|date',
             'end_date'    => 'required|date|after_or_equal:start_date',
@@ -465,6 +469,7 @@ class ManagerController extends Controller
         // Simpan proyek dengan manager_id = user yang login
         Project::create([
             'manager_id'  => $managerId, // ✅ Otomatis pakai manager yang login
+            'category_id'  => $request->category_id,
             'title'       => $request->title,
             'description' => $request->description,
             'start_date'  => $request->start_date,
@@ -485,6 +490,7 @@ class ManagerController extends Controller
 
         $request->validate([
             'project_id'  => 'required|exists:projects,id',
+            'category_id'  => 'required|exists:categories,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'start_date'  => 'required|date',
@@ -504,6 +510,7 @@ class ManagerController extends Controller
 
         $project->update([
             'title'       => $request->title,
+            'category_id'  => $request->category_id,
             'description' => $request->description,
             'start_date'  => $request->start_date,
             'end_date'    => $request->end_date,
@@ -546,7 +553,7 @@ class ManagerController extends Controller
     {
         $managerId = Auth::id();
 
-        $project = Project::with('manager')->findOrFail($project_id);
+        $project = Project::with('manager', 'category')->findOrFail($project_id);
 
         // ✅ Validasi: hanya manager pemilik proyek yang bisa akses
         if ($project->manager_id != $managerId) {
@@ -1135,8 +1142,10 @@ class ManagerController extends Controller
 
                 $events[] = [
                     'id' => $task->id,
+                    'project_id' => $task->project_id,
                     'title' => $task->title,
                     'project' => $task->project->title,
+                    'description' => $task->description,
                     'status' => $task->status,
                     'priority' => $task->priority,
                     'assignee' => $task->assignee->name ?? '-',

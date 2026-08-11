@@ -26,7 +26,7 @@ class UserController extends Controller
         // Ambil semua proyek yang memiliki tugas yang ditugaskan ke user ini
         $projects = Project::whereHas('tasks', function ($query) use ($userId) {
             $query->where('assigned_to', $userId);
-        })->with(['manager', 'tasks' => function ($query) use ($userId) {
+        })->with(['manager','category', 'tasks' => function ($query) use ($userId) {
             $query->where('assigned_to', $userId);
         }])->get();
 
@@ -312,7 +312,7 @@ class UserController extends Controller
         })
         ->with(['tasks' => function($query) use ($user) {
             $query->where('assigned_to', $user->id);
-        }, 'manager'])
+        }, 'manager', 'category'])
         ->get()
         ->map(function($project) use ($user) {
             // Hitung statistik tugas untuk proyek ini
