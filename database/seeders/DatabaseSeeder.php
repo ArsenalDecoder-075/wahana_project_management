@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Branch;
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,6 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BranchSeeder::class,
             UserSeeder::class,
+            CategorySeeder::class,
         ]);
     }
 }
@@ -65,6 +67,62 @@ class UserSeeder extends Seeder
 
         foreach ($users as $user) {
             User::create($user);
+        }
+    }
+}
+
+class CategorySeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $categories = [
+            [
+                'name' => 'Web Development',
+                'description' => 'Proyek pengembangan website',
+                'icon' => 'fa-globe',
+                'color' => '#4F46E5'
+            ],
+            [
+                'name' => 'Mobile Development',
+                'description' => 'Proyek pengembangan aplikasi mobile',
+                'icon' => 'fa-mobile-alt',
+                'color' => '#7C3AED'
+            ],
+            [
+                'name' => 'UI/UX Design',
+                'description' => 'Proyek desain antarmuka dan pengalaman pengguna',
+                'icon' => 'fa-paint-brush',
+                'color' => '#EC4899'
+            ],
+            [
+                'name' => 'DevOps',
+                'description' => 'Proyek infrastruktur dan deployment',
+                'icon' => 'fa-server',
+                'color' => '#F59E0B'
+            ],
+            [
+                'name' => 'Data Science',
+                'description' => 'Proyek analisis dan pengolahan data',
+                'icon' => 'fa-database',
+                'color' => '#10B981'
+            ],
+            [
+                'name' => 'Research & Development',
+                'description' => 'Proyek penelitian dan pengembangan',
+                'icon' => 'fa-flask',
+                'color' => '#EF4444'
+            ]
+        ];
+
+        foreach ($categories as $category) {
+            Category::create([
+                'name' => $category['name'],
+                'description' => $category['description'],
+                'is_active' => true
+            ]);
         }
     }
 }

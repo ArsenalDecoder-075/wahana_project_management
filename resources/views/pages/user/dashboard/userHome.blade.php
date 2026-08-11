@@ -124,9 +124,14 @@
                                                 </p>
 
                                                 <div class="mb-2">
-                                                    <span class="badge bg-secondary me-1">
+                                                    <span class="badge bg-secondary me-1 mb-1">
                                                         <i class="fas fa-user-tie me-1"></i>
                                                         {{ $project->manager->name ?? 'Tanpa Manajer' }}
+                                                    </span>
+                                                    {{-- ✅ Kategori --}}
+                                                    <span class="badge bg-dark me-1">
+                                                        <i class="fas fa-tag me-1"></i>
+                                                        {{ $project->category?->name ?? 'Tanpa Kategori' }}
                                                     </span>
                                                     <span class="badge bg-info">
                                                         <i class="far fa-calendar-alt me-1"></i>

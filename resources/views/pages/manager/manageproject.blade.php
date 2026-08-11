@@ -61,6 +61,16 @@
                             </div>
 
                             <div class="mb-3">
+                                <label for="category_id" class="form-label">Kategori<span class="text-red">*</span></label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="" selected disabled>-- Pilih Kategori --</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="start_date" class="form-label">Tanggal Mulai <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" id="start_date" name="start_date" required>
                             </div>
@@ -108,6 +118,15 @@
                             <div class="mb-3">
                                 <label>Deskripsi</label>
                                 <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Kategori Proyek</label>
+                                <select class="form-select" id="edit_category_id" name="category_id" required>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name}}</option>
+                                    @endforeach
+                                </select>
                             </div>
 
                             <div class="row">
@@ -215,8 +234,8 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Nama Proyek</th>
-                                {{-- <th>Penanggung Jawab</th> --}}
+                                <th>Proyek</th>
+                                <th>Kategori Proyek</th>
                                 <th>Durasi Kontrak</th>
                                 <th>Progres Sistem</th>
                                 <th>Status</th>
@@ -266,6 +285,7 @@
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                     { data: 'title', name: 'title' },
+                    { data: 'category_name', name: 'category_name' },
                     { data: 'duration', name: 'duration' },
                     { data: 'total_tasks', name: 'total_tasks' },
                     { data: 'status', name: 'status' },
@@ -348,20 +368,14 @@
 
             // Event Edit Project - Buka Modal Edit
             $(document).on('click', '.editProjectBtn', function() {
-                let id = $(this).data('id');
-                let title = $(this).data('title');
-                let description = $(this).data('description') || '';
-                let startDate = $(this).data('start');
-                let endDate = $(this).data('end');
-                let status = $(this).data('status') || 'Pending';
-
-                $('#edit_project_id').val(id);
-                $('#edit_title').val(title);
-                $('#edit_description').val(description);
-                $('#edit_start_date').val(startDate);
-                $('#edit_end_date').val(endDate);
-                $('#edit_status').val(status);
-
+                const button = $(this);
+                $('#edit_project_id').val(button.data('id'));
+                $('#edit_title').val(button.data('title') || '');
+                $('#edit_description').val(button.data('description') || '');
+                $('#edit_start_date').val(button.data('start') || '');
+                $('#edit_end_date').val(button.data('end') || '');
+                $('#edit_category_id').val(button.data('category-id')).trigger('change');
+                $('#edit_status').val(button.data('status') || 'Pending').trigger('change');
                 $('#editProjectModal').modal('show');
             });
 

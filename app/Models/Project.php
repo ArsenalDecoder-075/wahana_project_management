@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
 {
-    protected $fillable = ['manager_id', 'title', 'description', 'start_date', 'end_date', 'progress', 'status'];
+    protected $fillable = [
+        'manager_id',
+        'category_id',
+        'title',
+        'description',
+        'start_date',
+        'end_date',
+        'progress',
+        'status'];
 
     public function manager() {
         return $this->belongsTo(User::class, 'manager_id');
@@ -14,5 +22,9 @@ class Project extends Model
 
     public function tasks() {
         return $this->hasMany(Task::class);
+    }
+
+    public function category() {
+        return $this->belongsTo(Category::class);
     }
 }

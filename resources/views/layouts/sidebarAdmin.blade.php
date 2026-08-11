@@ -18,7 +18,7 @@
             <span class="icon"><i class="fa fa-database"></i></span>
             <span class="text">Master Data</span>
         </a>
-        <ul id="master_data" class="dropdown-nav collapse @if (request()->routeIs('admin.branch', 'admin.user')) show @endif">
+        <ul id="master_data" class="dropdown-nav collapse @if (request()->routeIs('admin.branch', 'admin.user', 'admin.manage.categories')) show @endif">
             <li class="nav-item">
                 <a href="{{ route('admin.branch') }}" class="@if (request()->routeIs('admin.branch')) active @endif">
                     <span class="text">{{ __('Cabang') }}</span>
@@ -27,6 +27,11 @@
             <li class="nav-item">
                 <a href="{{ route('admin.user') }}" class="@if (request()->routeIs('admin.user')) active @endif">
                     <span class="text">{{ __('Pengguna') }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('admin.manage.categories') }}" class="@if (request()->routeIs('admin.manage.categories')) active @endif">
+                    <span class="text">{{ __('Kategori') }}</span>
                 </a>
             </li>
         </ul>

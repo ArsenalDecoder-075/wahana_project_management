@@ -17,6 +17,9 @@
                     <nav>
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item">
+                                <a href="{{ route('manager.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
                                 <a href="{{ route('manager.manage.project') }}">Proyek</a>
                             </li>
                             <li class="breadcrumb-item active">Tugas</li>
@@ -37,13 +40,36 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong>Nama Proyek:</strong>
-                        <p>{{ $project->title }}</p>
+                    {{-- Nama Proyek --}}
+                    <div class="col-md-12 mb-3">
+                        <strong>{{ $project->title }}</strong> <br>
+                        <i>{{ $project->status }}</i>
                     </div>
+
+                    {{-- Manager --}}
                     <div class="col-md-6 mb-3">
-                        <strong>Status:</strong>
-                        <p>{{ $project->status }}</p>
+                        <strong>Manager:</strong>
+                        <p>
+                            @if($project->manager)
+                                <span class="badge bg-success">{{ $project->manager->name }}</span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </p>
+                    </div>
+
+                    {{-- Kategori --}}
+                    <div class="col-md-6 mb-3">
+                        <strong>Kategori:</strong>
+                        <p>
+                            @if($project->category)
+                                <span class="badge" style="background-color: #6c757d; color: white;">
+                                    {{ $project->category->name }}
+                                </span>
+                            @else
+                                <span class="text-muted">Tidak Ada Kategori</span>
+                            @endif
+                        </p>
                     </div>
                     <div class="col-md-12 mb-3">
                         <strong>Prioritas</strong>

@@ -12,7 +12,7 @@
     /* --- HEADER TANGGAL (kolom atas) --- */
     .calendar-header-row {
         display: flex;
-        border-bottom: 3px solid #cbd5e1; /* Garis header lebih tebal */
+        border-bottom: 3px solid #cbd5e1;
         background: #f8f9fa;
         font-weight: bold;
         height: 40px;
@@ -28,7 +28,7 @@
         font-size: 14px;
         color: #495057;
         background: #fff;
-        border-right: 3px solid #cbd5e1; /* Garis pemisah kolom */
+        border-right: 3px solid #cbd5e1;
     }
     .header-day {
         flex: 1;
@@ -46,7 +46,6 @@
     .priority-row {
         display: flex;
         align-items: stretch;
-        /* Border bawah halus antar baris dalam satu prioritas */
         border-bottom: 1px solid #e5e7eb;
         height: 60px;
         position: relative;
@@ -61,7 +60,7 @@
         display: flex;
         align-items: center;
         background: #f8f9fa;
-        border-right: 3px solid #cbd5e1; /* Garis pemisah kolom */
+        border-right: 3px solid #cbd5e1;
         z-index: 5;
         height: 100%;
         box-sizing: border-box;
@@ -105,7 +104,6 @@
     }
     .task-block:hover {
         z-index: 20;
-        transform: scale(1.02);
         box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         filter: brightness(1.15);
     }
@@ -158,9 +156,9 @@
                 </button>
             </div>
         </div>
-        <div class="card-body p-0" style="overflow-x: auto;">
-            <div id="calendarContainer" class="calendar-wrapper">
-                {{-- Akan diisi oleh JavaScript --}}
+        <div class="card-body p-0" style="overflow: visible;">
+            <div id="calendarContainer" class="calendar-wrapper" style="overflow: visible;">
+                {{-- Kalender diisi oleh JavaScript --}}
             </div>
         </div>
     </div>
@@ -171,6 +169,58 @@
         <div class="legend-item"><span class="legend-color" style="background:#6c757d;"></span> Review</div>
         <div class="legend-item"><span class="legend-color" style="background:#198754;"></span> Completed</div>
         <div class="legend-item"><span class="legend-color" style="background:#dc3545;"></span> Rejected</div>
+    </div>
+</div>
+
+{{-- MODAL POPUP DETAIL TUGAS (BARU)            --}}
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="taskDetailModalLabel">
+                    <i class="fas fa-tasks me-2"></i> Detail Tugas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="fw-bold">Judul Tugas</h6>
+                        <p id="modalTaskTitle" class="fs-5 fw-semibold"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Proyek</h6>
+                        <p id="modalTaskProject"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Ditugaskan Kepada</h6>
+                        <p id="modalTaskAssignee"></p>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <h6 class="fw-bold">Deskripsi Tugas</h6>
+                        <p id="modalTaskDescription" class="text-muted" style="white-space: pre-wrap;"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-bold">Prioritas</h6>
+                        <p id="modalTaskPriority"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-bold">Status</h6>
+                        <p id="modalTaskStatus"></p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-bold">Durasi</h6>
+                        <p id="modalTaskDuration"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <a href="#" id="modalTaskDetailBtn" class="btn btn-primary">
+                    <i class="fas fa-eye me-1"></i> Lihat Detail Tugas
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -238,8 +288,6 @@ $(document).ready(function() {
         // --- 2. BARIS PRIORITAS ---
         const priorities = ['high', 'medium', 'low'];
         let bodyHtml = '';
-
-        // Variabel untuk membuat garis pemisah tebal antar level prioritas
         let isFirstPriority = true;
 
         priorities.forEach(priority => {
@@ -252,25 +300,19 @@ $(document).ready(function() {
             for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
                 const tasksInRow = tasks.filter(t => t.row_index === rowIdx);
 
-                // --- PERBAIKAN GARIS HORIZONTAL ANTAR PRIORITAS ---
-                // Jika ini adalah baris PERTAMA dari prioritas saat ini, dan BUKAN prioritas pertama, tambahkan border top tebal
                 let extraRowStyle = '';
                 if (rowIdx === 0 && !isFirstPriority) {
-                    extraRowStyle = 'border-top: 5px solid #cbd5e1;'; // Garis pemisah tebal antar prioritas!
+                    extraRowStyle = 'border-top: 5px solid #cbd5e1;';
                 }
 
                 bodyHtml += `<div class="priority-row" style="height: ${rowHeight}px;${extraRowStyle}">`;
 
-                // --- PERBAIKAN KOLOM PRIORITAS ---
-                // Tampilkan label di baris pertama. Untuk baris lainnya, gunakan warna yang sama agar kolom terisi penuh.
                 if (rowIdx === 0) {
                     bodyHtml += `<div class="priority-label ${priority}" style="background: ${bgLabel}; color: ${textLabel};">${label}</div>`;
                 } else {
-                    // Menampilkan warna background yang sama tapi kosong teksnya, agar kolom tidak terlihat "bolong"
                     bodyHtml += `<div class="priority-label ${priority}" style="background: ${bgLabel}; color: ${textLabel};">&nbsp;</div>`;
                 }
 
-                // Area tugas
                 bodyHtml += `<div class="task-area" style="position: relative;">`;
 
                 tasksInRow.forEach(task => {
@@ -290,32 +332,103 @@ $(document).ready(function() {
                     else bgColor = '#17a2b8';
 
                     const textColor = (task.status === 'Pending') ? '#212529' : '#fff';
-                    const tooltip = `Proyek: ${task.project}\nTugas: ${task.title}\nDescripsi: ${task.description}\nDurasi: ${duration} hari\nPekerja: ${task.assignee}\nStatus: ${task.status}`;
+                    const tooltip = `Proyek: ${task.project}\nTugas: ${task.title}\nDeskripsi: ${task.description}\nDurasi: ${duration} hari\nPekerja: ${task.assignee}\nStatus: ${task.status}`;
 
                     bodyHtml += `<div class="task-block status-${task.status.toLowerCase().replace(' ', '')}"
-                                    style="left: ${leftPercent}%; width: ${widthPercent}%; top: 4px; height: calc(100% - 8px); background: ${bgColor}; color: ${textColor};"
-                                    data-task-id="${task.id}"
-                                    title="${tooltip}">
-                                    ${task.title} (${duration}h)
-                                </div>`;
+                            style="left: ${leftPercent}%; width: ${widthPercent}%; top: 4px; height: calc(100% - 8px); background: ${bgColor}; color: ${textColor};"
+                            data-task-id="${task.id}"
+                            data-project-id="${task.project_id}"
+                            data-priority="${task.priority}"
+                            title="${tooltip}">
+                            ${task.title} (${duration}h)
+                        </div>`;
                 });
 
-                bodyHtml += `</div>`; // end task-area
-                bodyHtml += `</div>`; // end priority-row
+                bodyHtml += `</div>`;
+                bodyHtml += `</div>`;
             }
 
-            // Setelah satu level prioritas selesai, tandai agar baris prioritas berikutnya mendapatkan garis pemisah
             isFirstPriority = false;
         });
 
         $('#calendarContainer').html(headerHtml + bodyHtml);
 
-        // Event click pada task block
+        // EVENT KLIK TASK BLOCK (BUKA MODAL)
         $('.task-block').on('click', function() {
+            const projectId = $(this).data('project-id');
             const taskId = $(this).data('task-id');
-            if (taskId) {
-                alert('Task ID: ' + taskId + '\n' + $(this).attr('title'));
+            if (!taskId || !projectId) return;
+
+            // Ambil data dari atribut title (tooltip)
+            const fullTooltip = $(this).attr('title');
+            const lines = fullTooltip.split('\n');
+            let dataObj = {};
+
+            lines.forEach(line => {
+                const parts = line.split(': ');
+                if (parts.length === 2) {
+                    const key = parts[0].trim();
+                    const value = parts[1].trim();
+                    if (key === 'Proyek') dataObj.project = value;
+                    if (key === 'Tugas') dataObj.title = value;
+                    if (key === 'Deskripsi') dataObj.description = value;
+                    if (key === 'Durasi') dataObj.duration = value;
+                    if (key === 'Pekerja') dataObj.assignee = value;
+                    if (key === 'Status') dataObj.status = value;
+                }
+            });
+
+            const statusBg = $(this).css('background-color');
+
+            // Isi Modal
+            $('#modalTaskTitle').text(dataObj.title || 'Tidak ada judul');
+            $('#modalTaskProject').text(dataObj.project || '-');
+            $('#modalTaskAssignee').text(dataObj.assignee || '-');
+            $('#modalTaskDescription').text(dataObj.description || 'Tidak ada deskripsi.');
+            $('#modalTaskDuration').text(dataObj.duration || '-');
+
+            // Set Status badge
+            const statusHtml = `<span class="badge" style="background-color: ${statusBg}; color: #fff; padding: 5px 10px;">${dataObj.status || '-'}</span>`;
+            $('#modalTaskStatus').html(statusHtml);
+
+            // Set Prioritas badge
+            // const priorityLabel = $(this).closest('.priority-row').find('.priority-label').text().trim();
+            // let priorityBadgeClass = 'bg-secondary';
+            // if (priorityLabel.includes('High')) priorityBadgeClass = 'bg-danger';
+            // else if (priorityLabel.includes('Medium')) priorityBadgeClass = 'bg-warning';
+            // else if (priorityLabel.includes('Low')) priorityBadgeClass = 'bg-info';
+
+            // $('#modalTaskPriority').html(`<span class="badge ${priorityBadgeClass}">${priorityLabel}</span>`);
+
+            // Set Prioritas badge
+            // PERBAIKAN: Ambil langsung dari atribut data-priority, bukan dari closest row
+            const taskPriority = $(this).data('priority');
+
+            let priorityBadgeClass = 'bg-secondary';
+            let priorityLabelText = 'Unknown';
+
+            if (taskPriority === 'high') {
+                priorityBadgeClass = 'bg-danger';
+                priorityLabelText = 'High Priority';
+            } else if (taskPriority === 'medium') {
+                priorityBadgeClass = 'bg-warning';
+                priorityLabelText = 'Medium Priority';
+            } else if (taskPriority === 'low') {
+                priorityBadgeClass = 'bg-info';
+                priorityLabelText = 'Low Priority';
             }
+
+            $('#modalTaskPriority').html(`<span class="badge ${priorityBadgeClass}">${priorityLabelText}</span>`);
+
+            // PERBAIKAN URL: Bangun URL secara langsung (Hardcode string URL)
+            // /admin/tasks/{project_id}/review/{task_id} sama kayak web.php
+            const detailUrl = "/admin/projects/" + projectId + "/tasks/" + taskId + "/review";
+
+            $('#modalTaskDetailBtn').attr('href', detailUrl);
+
+            // Tampilkan Modal
+            const myModal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+            myModal.show();
         });
     }
 

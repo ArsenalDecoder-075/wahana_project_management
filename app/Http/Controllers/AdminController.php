@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Branch;
 use App\Models\Project;
+use App\Models\Category;
 use App\Models\Task;
 use App\Models\TaskReview;
 use App\Models\TaskSubmission;
@@ -440,9 +441,9 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Cabang berhasil dihapus!');
     }
     /*------------------------------------------
---------------------------------------------
-User Management Methods (Simplified)
---------------------------------------------*/
+    --------------------------------------------
+    User Management Methods (Simplified)
+    --------------------------------------------*/
     public function adminUser(Request $request)
     {
         if ($request->ajax()) {
@@ -574,6 +575,176 @@ User Management Methods (Simplified)
         }
         return redirect()->back()->with('success', 'User berhasil dihapus!');
     }
+
+    /*------------------------------------------
+    --------------------------------------------
+    Category Project
+    --------------------------------------------*/
+    // Halaman Category Project dengan Data untuk DataTables
+    public function manageCategory(Request $request)
+    {
+        if ($request->ajax()) {
+            $data = Category::select(['id', 'name', 'description', 'is_active', 'created_at']);
+            return DataTables::of($data)
+                ->addIndexColumn()
+                ->addColumn('status', function($row) {
+                    $badge = $row->is_active ? 'success' : 'danger';
+                    $text = $row->is_active ? 'Active' : 'Inactive';
+                    return '<span class="badge bg-' . $badge . '">' . $text . '</span>';
+                })
+                ->addColumn('action', function($row) {
+                    $editBtn = '<button class="btn btn-sm btn-primary edit-btn"
+                                data-id="' . $row->id . '"
+                                data-name="' . htmlspecialchars($row->name, ENT_QUOTES) . '"
+                                data-description="' . htmlspecialchars($row->description ?? '', ENT_QUOTES) . '"
+                                data-is_active="' . $row->is_active . '">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>';
+
+                    $deleteBtn = '<button class="btn btn-sm btn-danger delete-btn"
+                                data-id="' . $row->id . '"
+                                data-name="' . htmlspecialchars($row->name, ENT_QUOTES) . '">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>';
+
+                    return $editBtn . ' ' . $deleteBtn;
+                })
+                ->rawColumns(['status', 'action'])
+                ->make(true);
+        }
+
+        return view('pages.admin.managecategories');
+    }
+
+    // Simpan category
+    public function storeCategory(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+            'description' => 'nullable|string',
+            'is_active' => 'sometimes|boolean',
+        ], [
+            'name.unique' => 'Nama kategori sudah digunakan',
+            'name.required' => 'Nama kategori wajib diisi',
+        ]);
+
+        $isActive = false;
+        if ($request->has('is_active')) {
+            $isActive = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        Category::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'is_active' => $isActive,
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil ditambahkan!'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Kategori berhasil ditambahkan!');
+    }
+
+    // Edit Category
+    public function editCategory(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:categories,id',
+            'name' => 'required|string|max:255|unique:categories,name,' . $request->id,
+            'description' => 'nullable|string',
+            'is_active' => 'sometimes|boolean',
+        ], [
+            'name.unique' => 'Nama kategori sudah digunakan',
+            'name.required' => 'Nama kategori wajib diisi',
+        ]);
+
+        $category = Category::findOrFail($request->id);
+        $category->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'is_active' => $request->has('is_active') ? true : false,
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil diupdate!'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Kategori berhasil diupdate!');
+    }
+
+    public function deleteCategory(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:categories,id'
+        ]);
+
+        $category = Category::findOrFail($request->id);
+
+        // Cek apakah kategori masih digunakan di projects
+        if ($category->projects()->count() > 0) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kategori tidak dapat dihapus karena masih digunakan oleh ' . $category->projects()->count() . ' project(s)!'
+                ], 400);
+            }
+            return redirect()->back()->with('error', 'Kategori tidak dapat dihapus karena masih digunakan oleh project!');
+        }
+
+        $category->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil dihapus!'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Kategori berhasil dihapus!');
+    }
+
+    /**
+     * Get category data for edit (AJAX)
+     */
+    public function getCategory(Request $request)
+    {
+        $category = Category::findOrFail($request->id);
+        return response()->json($category);
+    }
+
+    /**
+     * Toggle status category (Active/Inactive)
+     */
+    public function toggleStatus(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:categories,id'
+        ]);
+
+        $category = Category::findOrFail($request->id);
+        $category->is_active = !$category->is_active;
+        $category->save();
+
+        $status = $category->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil ' . $status . '!',
+                'is_active' => $category->is_active
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Kategori berhasil ' . $status . '!');
+    }
+
     /*------------------------------------------
     --------------------------------------------
     Profile Admin
@@ -763,63 +934,25 @@ User Management Methods (Simplified)
     public function manageProject(Request $request)
     {
         if ($request->ajax()) {
-            $projects = Project::with('manager')->get();
+            // $projects = Project::with('manager')->get();
+            $projects = Project::with(['manager', 'category'])->get();
 
             return datatables()->of($projects)
                 ->addIndexColumn()
                 ->addColumn('manager', function($row) {
                     return $row->manager ? $row->manager->name : '-';
                 })
+                ->addColumn('category_name', function($row) {
+                    return '<span class="fw-bold">' . ($row->category?->name ?? 'Tidak Ada') . '</span>';
+                })
+                ->addColumn('title', function($row) {
+                    $title = '<div class="fw-bold text-dark mb-1">' . e($row->title) . '</div>';
+                    $description = '<div class="text-muted small">' . e($row->description) . '</div>';
+                    return $title . $description;
+                })
                 ->addColumn('duration', function($row) {
                     return $row->start_date . ' s/d ' . $row->end_date;
                 })
-                // ->addColumn('progress', function($row) {
-                //     // Return rancangan Progress Bar Bootstrap
-                //     return '<div class="progress" style="height: 15px;">
-                //                 <div class="progress-bar bg-success" role="progressbar" style="width: '.$row->progress.'%" aria-valuenow="'.$row->progress.'" aria-valuemin="0" aria-valuemax="100">'.$row->progress.'%</div>
-                //             </div>';
-                // })
-                // Progress berdasarkan tugas yang selesai vs total tugas
-                // ->addColumn('progress', function($row) {
-                //     $totalTasks = $row->tasks->count();
-                //     $completedTasks = $row->tasks->where('status', 'Completed')->count();
-
-                //     // Hitung progress
-                //     if ($totalTasks == 0) {
-                //         $progress = 0;
-                //         $label = 'Belum ada tugas';
-                //     } else {
-                //         $progress = round(($completedTasks / $totalTasks) * 100);
-                //         $label = $progress . '% (' . $completedTasks . '/' . $totalTasks . ' tugas)';
-                //     }
-
-                //     // Tentukan warna berdasarkan progress
-                //     if ($progress == 100) {
-                //         $color = 'bg-success';
-                //     } elseif ($progress >= 50) {
-                //         $color = 'bg-primary';
-                //     } elseif ($progress >= 25) {
-                //         $color = 'bg-warning';
-                //     } else {
-                //         $color = 'bg-danger';
-                //     }
-
-                //     // Update progress di database agar tetap sinkron
-                //     if ($row->progress != $progress) {
-                //         $row->update(['progress' => $progress]);
-                //     }
-
-                //     return '<div class="progress" style="height: 20px; position: relative;">
-                //                 <div class="progress-bar ' . $color . ' progress-bar-striped progress-bar-animated"
-                //                     role="progressbar"
-                //                     style="width: ' . $progress . '%"
-                //                     aria-valuenow="' . $progress . '"
-                //                     aria-valuemin="0"
-                //                     aria-valuemax="100">
-                //                     ' . $label . '
-                //                 </div>
-                //             </div>';
-                // })
                 ->addColumn('total_tasks', function($row) {
                     $total = $row->tasks->count();
                     $completed = $row->tasks->where('status', 'Completed')->count();
@@ -829,7 +962,7 @@ User Management Methods (Simplified)
                     }
 
                     return '<span class="fw-bold">Jumlah Tugas : ' . $total . '</span>
-                            <span class="text-muted"> | Tugas Selesai: ' . $completed . ')</span>';
+                            <span class="text-muted"> | Tugas Selesai: ' . $completed . '</span>';
                 })
                 ->addColumn('action', function($row) {
                     return '
@@ -839,11 +972,13 @@ User Management Methods (Simplified)
                         </a>
                         <button class="btn btn-warning btn-sm editProjectBtn"
                             data-id="'.$row->id.'"
-                            data-title="'.$row->title.'"
-                            data-description="'.$row->description.'"
+                            data-title="'.htmlspecialchars($row->title ?? '', ENT_QUOTES, 'UTF-8').'"
+                            data-description="'.htmlspecialchars($row->description ?? '', ENT_QUOTES, 'UTF-8').'"
                             data-start="'.$row->start_date.'"
                             data-end="'.$row->end_date.'"
                             data-manager-id="'.$row->manager_id.'"
+                            data-category-id="'.$row->category_id.'"
+                            data-status="'.$row->status.'"
                             title="Edit Proyek">
                             <i class="lni lni-pencil"></i>
                         </button>
@@ -852,15 +987,16 @@ User Management Methods (Simplified)
                         </button>
                     </div>';
                 })
-                ->rawColumns(['total_tasks', 'action'])
+                ->rawColumns(['title', 'total_tasks', 'category_name', 'action']) // ⭐ Tambahkan 'title' di sini
                 ->make(true);
         }
 
-        // Mengambil data user bertipe Employee/Karyawan (asumsi tipe 0 = Karyawan Cabang berdasarkan manageruser.blade.php)
+        // Mengambil data user bertipe Employee/Karyawan (0 = Karyawan Cabang)
         $employees = User::where('type', '0')->get();
         $managers = User::whereIn('type', ['1', '2'])->orderBy('name')->get();
+        $categories = Category::where('is_active', true)->get(); // ✅ Gunakan nama yang tepat
 
-        return view('pages.admin.manageproject', compact('employees', 'managers'));
+        return view('pages.admin.manageproject', compact('employees', 'managers', 'categories'));
     }
 
     public function storeProject(Request $request)
@@ -868,6 +1004,7 @@ User Management Methods (Simplified)
         // Validasi input form
         $request->validate([
             'manager_id'  => 'required|exists:users,id',
+            'category_id'  => 'required|exists:categories,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'start_date'  => 'required|date',
@@ -886,6 +1023,7 @@ User Management Methods (Simplified)
         // Simpan ke database menggunakan Eloquent Proyek
         Project::create([
             'manager_id'  => $request->manager_id,
+            'category_id'  => $request->category_id,
             'title'       => $request->title,
             'description' => $request->description,
             'start_date'  => $request->start_date,
@@ -906,6 +1044,7 @@ User Management Methods (Simplified)
         $request->validate([
             'project_id'  => 'required|exists:projects,id',
             'manager_id'  => 'required|exists:users,id',
+            'category_id'  => 'required|exists:categories,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'start_date'  => 'required|date',
@@ -926,11 +1065,11 @@ User Management Methods (Simplified)
         $project = Project::findOrFail($request->project_id);
         $project->update([
             'manager_id'  => $request->manager_id,
+            'category_id'  => $request->category_id,
             'title'       => $request->title,
             'description' => $request->description,
             'start_date'  => $request->start_date,
             'end_date'    => $request->end_date,
-            // 'progress'    => $request->progress,
             'status'      => $request->status,
         ]);
 
@@ -961,7 +1100,7 @@ User Management Methods (Simplified)
 
     public function manageTasks(Request $request, $project_id)
     {
-        $project = Project::with('manager')->findOrFail($project_id);
+        $project = Project::with(['manager', 'category'])->findOrFail($project_id);
 
         // Karyawan bawahan manager project
         $employees = User::whereIn('id', function ($query) use ($project) {
@@ -999,10 +1138,6 @@ User Management Methods (Simplified)
 
         // ✅ AJAX untuk DataTables
         if ($request->ajax()) {
-            // ✅ Gunakan query builder + eager loading
-            // $tasks = Task::with(['assignee', 'submissions'])
-            //     ->where('project_id', $project_id)
-            //     ->select('tasks.*');
             $tasks = Task::with(['assignee'])
             ->withCount([
                 // Hitung submission yang pending (menunggu review)
@@ -1619,6 +1754,7 @@ User Management Methods (Simplified)
                 $events[] = [
                     'id' => $task->id,
                     'title' => $task->title,
+                    'project_id' => $task->project_id,
                     'project' => $task->project->title,
                     'description' => $task->description,
                     'status' => $task->status,

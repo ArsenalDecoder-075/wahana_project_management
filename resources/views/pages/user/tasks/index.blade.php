@@ -4,19 +4,24 @@
 @section('content')
     <div class="container-fluid">
         <div class="row align-items-center mb-4">
-            <div class="col-md-6">
+            <div class="col-md-8">
                 <h2 class="text-bold">
                     <i class="fas fa-tasks text-primary me-2 pt-5"></i>
                     Tugas Anda di Proyek: {{ $project->title }}
                 </h2>
                 <div class="pt-2 mt-sm-0">
                     {{-- Manajer --}}
-                    <span class="badge bg-primary me-1">
+                    <span class="badge bg-primary me-1 mb-1">
                         <i class="fas fa-user-tie me-1"></i> Manajer: {{ $project->manager->name ?? 'Tidak ada' }}
                     </span>
                     {{-- Periode Pekerjaan --}}
-                    <span class="badge bg-secondary me-1">
+                    <span class="badge bg-secondary me-1 mb-1">
                         <i class="fas fa-calendar-alt me-1"></i> Periode: {{ \Carbon\Carbon::parse($project->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($project->end_date)->format('d M Y') }}
+                    </span>
+                    {{-- Kategori --}}
+                    <span class="badge bg-dark me-1 mb-1">
+                        <i class="fas fa-tag me-1"></i>
+                        {{ $project->category?->name ?? 'Tanpa Kategori' }}
                     </span>
                     {{-- Progress --}}
                     @php
@@ -25,12 +30,12 @@
                         $progress = $total > 0 ? round(($completed / $total) * 100) : 0;
                     @endphp
 
-                    <span class="badge bg-success me-1">
+                    <span class="badge bg-success me-1 mb-1">
                         <i class="fas fa-chart-line me-1"></i> Progress: {{ $completed }}/{{ $total }}
                     </span>
                 </div>
             </div>
-            <div class="col-md-6 text-end">
+            <div class="col-md-4 text-end">
                 <a href="{{ route('user.dashboard') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Kembali ke Dashboard
                 </a>
