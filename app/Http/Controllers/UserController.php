@@ -81,18 +81,61 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $task = Task::with(['project', 'assignee', 'creator'])
-            ->where('id', $taskId)
-            ->where('assigned_to', $user->id)
-            ->firstOrFail();
+        $task = Task::with([
+            'project',
+            'assignee',
+            'creator',
+            'submissions' => function($query) use ($user) {
+                $query->where('employee_id', $user->id)
+                    ->with(['reviews.reviewer'])
+                    ->orderBy('created_at', 'asc');
+            }
+        ])
+        ->where('id', $taskId)
+        ->where('assigned_to', $user->id)
+        ->firstOrFail();
 
-        // Ambil submission terakhir untuk task ini
-        $submission = \App\Models\TaskSubmission::where('task_id', $taskId)
-            ->where('employee_id', $user->id)
-            ->latest()
-            ->first();
+        $submission = $task->submissions->last();
 
-        return view('pages.user.tasks.detail', compact('task', 'submission'));
+        // ============================================================
+        // BUAT KOLEKSI PESAN TERURUT (Submission + Review)
+        // ============================================================
+        $messages = collect();
+
+        foreach ($task->submissions as $sub) {
+            // Simpan teks submission untuk referensi reply
+            $submissionText = $sub->notes ?? 'Tidak ada catatan';
+
+            // Tambahkan submission (pesan dari karyawan)
+            $messages->push((object) [
+                'type' => 'submission',
+                'user_name' => $user->name,
+                'message' => $submissionText,
+                'created_at' => $sub->created_at,
+                'is_employee' => true,
+                'status' => $sub->status,
+                'reply_to' => null, // tidak ada reply
+            ]);
+
+            // Tambahkan review (feedback dari atasan)
+            foreach ($sub->reviews as $review) {
+                $messages->push((object) [
+                    'type' => 'review',
+                    'user_name' => $review->reviewer->name ?? 'Atasan',
+                    'message' => $review->feedback_notes ?? 'Tidak ada feedback',
+                    'created_at' => $review->created_at,
+                    'is_employee' => false,
+                    'status' => $review->status,
+                    'reviewer' => $review->reviewer,
+                    'reply_to' => $submissionText, // ✅ Isi dengan teks submission yang direspon
+                ]);
+            }
+        }
+
+        // Urutkan berdasarkan waktu (dari yang paling tua ke terbaru)
+        $messages = $messages->sortBy('created_at')->values();
+
+        return view('pages.user.tasks.detail', compact('task', 'submission', 'messages'));
     }
 
     public function submitTaskNotes(Request $request)

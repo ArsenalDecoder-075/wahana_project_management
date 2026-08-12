@@ -227,7 +227,7 @@
                                                 <div class="mt-2">
                                                     <button class="btn btn-sm btn-success submit-feedback-btn"
                                                             data-id="{{ $sub->id }}"
-                                                            data-status="approved">
+                                                            data-status="accepted">
                                                         <i class="fas fa-check me-1"></i> Setujui
                                                     </button>
                                                     <button class="btn btn-sm btn-danger submit-feedback-btn"
@@ -276,6 +276,7 @@ $(document).ready(function() {
     // Submit Feedback
     $('.submit-feedback-btn').on('click', function() {
         const submissionId = $(this).data('id');
+        const status = $(this).data('status'); // ✅ Ambil status dari tombol
         const notesContainer = $('#feedback-' + submissionId);
         const feedback_notes = notesContainer.find('.feedback-notes').val(); // ✅ variabel didefinisikan
         const btn = $(this);
@@ -294,7 +295,8 @@ $(document).ready(function() {
             data: {
                 _token: "{{ csrf_token() }}",
                 submission_id: submissionId,
-                feedback_notes: feedback_notes   // ✅ sekarang terdefinisi
+                feedback_notes: feedback_notes,   // ✅ sekarang terdefinisi
+                status: status // ✅ Kirim status ke server
             },
             success: function(response) {
                 if (response.success) {

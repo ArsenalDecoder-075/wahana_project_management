@@ -945,13 +945,49 @@ class AdminController extends Controller
                 ->addColumn('category_name', function($row) {
                     return '<span class="fw-bold">' . ($row->category?->name ?? 'Tidak Ada') . '</span>';
                 })
+                // ->addColumn('title', function($row) {
+                //     $title = '<div class="fw-bold text-dark mb-1">' . e($row->title) . '</div>';
+                //     $description = '<div class="text-muted small">' . e($row->description) . '</div>';
+                //     return $title . $description;
+                // })
+                // ->addColumn('duration', function($row) {
+                //     return $row->start_date . ' s/d ' . $row->end_date;
+                // })
                 ->addColumn('title', function($row) {
-                    $title = '<div class="fw-bold text-dark mb-1">' . e($row->title) . '</div>';
-                    $description = '<div class="text-muted small">' . e($row->description) . '</div>';
-                    return $title . $description;
+                    // Buat ID unik untuk collapse
+                    $collapseId = 'descCollapse_' . $row->id;
+
+                    $html = '
+                    <div class="project-title-wrapper">
+                        <div class="fw-bold text-dark mb-1" data-bs-toggle="collapse"
+                        data-bs-target="#' . $collapseId . '" aria-expanded="false">
+                        ' . e($row->title) . '
+                        </div>
+
+                        <!-- Deskripsi Proyek (Tersembunyi, akan muncul saat diklik) -->
+                        <div class="collapse mt-2" id="' . $collapseId . '">
+                        <p class="mb-0 text-dark">' . e($row->description) . '</p>
+                        </div>
+                    </div>
+                    ';
+
+                    return $html;
                 })
                 ->addColumn('duration', function($row) {
-                    return $row->start_date . ' s/d ' . $row->end_date;
+                    // Format: 12 Agu 2026 (3 huruf awal bulan)
+                    $start = \Carbon\Carbon::parse($row->start_date)->format('d M Y');
+                    $end = \Carbon\Carbon::parse($row->end_date)->format('d M Y');
+
+                    return '
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-primary text-white px-3 py-2 rounded-pill">
+                                <i class="fas fa-calendar-day me-1"></i> ' . $start . '
+                            </span>
+                            <span class="badge bg-danger text-white px-3 py-2 rounded-pill">
+                                <i class="fas fa-calendar-times me-1"></i> ' . $end . '
+                            </span>
+                        </div>
+                    ';
                 })
                 ->addColumn('total_tasks', function($row) {
                     $total = $row->tasks->count();
@@ -961,14 +997,24 @@ class AdminController extends Controller
                         return '<span class="text-muted"><i class="fas fa-minus"></i> 0 tugas</span>';
                     }
 
-                    return '<span class="fw-bold">Jumlah Tugas : ' . $total . '</span>
-                            <span class="text-muted"> | Tugas Selesai: ' . $completed . '</span>';
+                    // return '<span class="fw-bold">Jumlah Tugas : ' . $total . '</span>
+                    //         <span class="text-muted"> | Tugas Selesai: ' . $completed . '</span>';
+                    return '
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-info text-white px-3 py-2 rounded-pill">
+                            <i class="fa-regular fa-square-check"></i></i> Jumlah Tugas : ' . $total . '
+                            </span>
+                            <span class="badge bg-success text-white px-3 py-2 rounded-pill">
+                            <i class="fa-regular fa-square"></i></i> Tugas Selesai : ' . $completed . '
+                            </span>
+                        </div>
+                    ';
                 })
                 ->addColumn('action', function($row) {
                     return '
                     <div class="btn-group" role="group">
-                        <a href="'.route('admin.tasks.manage', $row->id).'" class="btn btn-info btn-sm">
-                            <i class="lni lni-plus"></i> Kelola Tugas
+                        <a href="'.route('admin.tasks.manage', $row->id).'" class="btn btn-info btn-sm" title="Kelola Tugas Proyekk">
+                            <i class="lni lni-plus"></i>
                         </a>
                         <button class="btn btn-warning btn-sm editProjectBtn"
                             data-id="'.$row->id.'"
@@ -987,7 +1033,7 @@ class AdminController extends Controller
                         </button>
                     </div>';
                 })
-                ->rawColumns(['title', 'total_tasks', 'category_name', 'action']) // ⭐ Tambahkan 'title' di sini
+                ->rawColumns(['title', 'duration', 'total_tasks', 'category_name', 'action']) // ⭐ Tambahkan 'title' di sini
                 ->make(true);
         }
 
@@ -1208,58 +1254,7 @@ class AdminController extends Controller
                     return '<span class="text-success"><i class="fas fa-calendar-alt"></i> '
                         . $deadline->format('d M Y') . '</span>';
                 })
-                // ->addColumn('submission_status', function($row) {
-                //     // Cek apakah ada submission sama sekali
-                //     $anySubmission = $row->pending_submissions + $row->reviewed_submissions > 0;
 
-                //     if ($row->pending_submissions > 0) {
-                //         return '<span class="badge bg-warning text-dark">
-                //                     <i class="fas fa-clock me-1"></i> Menunggu Review
-                //                 </span>';
-                //     }
-                //     if ($anySubmission) {
-                //         return '<span class="badge bg-secondary">Sudah Direview</span>';
-                //     }
-                //     return '<span class="badge bg-secondary">-</span>';
-                // })
-                // ->addColumn('action', function($row) {
-                //     $route = Auth::user()->type == 1 ? 'admin.tasks.review' : 'manager.tasks.review';
-                //     $reviewBtn = '
-                //         <a href="'.route($route, ['project_id' => $row->project_id, 'task_id' => $row->id]).'"
-                //            class="btn btn-sm btn-success"
-                //            title="Lihat/Review Submission">
-                //             <i class="fas fa-check-double me-1"></i> Review
-                //         </a>
-                //     ';
-
-                //     return '
-                //     <div class="btn-group btn-group-sm" role="group">
-                //         <button class="btn btn-warning editTaskBtn"
-                //             data-id="'.$row->id.'"
-                //             data-title="'.addslashes($row->title).'"
-                //             data-description="'.addslashes($row->description).'"
-                //             data-priority="'.$row->priority.'"
-                //             data-assigned="'.$row->assigned_to.'"
-                //             data-start_date="'.$row->start_date.'"
-                //             data-deadline="'.$row->deadline.'"
-                //             title="Edit Tugas">
-                //             <i class="fas fa-edit"></i> Edit
-                //         </button>
-                //         <button class="btn btn-danger deleteTaskBtn"
-                //             data-id="'.$row->id.'"
-                //             data-title="'.addslashes($row->title).'"
-                //             data-description="'.addslashes($row->description).'"
-                //             data-employee="'.($row->assignee?->name ?? 'Tidak Ada').'"
-                //             data-start_date="'.$row->start_date.'"
-                //             data-priority="'.$row->priority.'"
-                //             data-deadline="'.$row->deadline.'"
-                //             title="Hapus Tugas">
-                //             <i class="fas fa-trash"></i> Hapus
-                //         </button>
-                //         '.$reviewBtn.'
-                //     </div>
-                //     ';
-                // })
                 ->addColumn('action', function($row) {
                     $route = 'admin.tasks.review';
                     // ✅ Review button: hanya muncul jika status 'Review' atau 'Completed'
@@ -1429,7 +1424,7 @@ class AdminController extends Controller
         // Ambil SEMUA submission untuk tugas ini (urut dari yang terbaru)
         $submissions = TaskSubmission::with(['employee'])
             ->where('task_id', $task_id)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->get();
 
         // Ambil submission yang pending (untuk ditampilkan di card utama)
@@ -1633,6 +1628,7 @@ class AdminController extends Controller
         $request->validate([
             'submission_id' => 'required|exists:task_submissions,id',
             'feedback_notes' => 'required|string|max:1000',
+            'status' => 'required|in:accepted,rejected' // Validasi status
         ]);
 
         $user = Auth::user();
@@ -1677,13 +1673,15 @@ class AdminController extends Controller
             'submission_id' => $request->submission_id,
             'manager_id' => $userId, // Kolom ini disimpan user_id (bisa Admin atau Manager)
             'feedback_notes' => $request->feedback_notes,
-            'status' => 'accepted', // default, tidak mempengaruhi status tugas
+            'status' => $request->status, // Gunakan status dari request
             'reviewed_at' => now(),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Feedback berhasil ditambahkan!'
+            'message' => $request->status == 'approved'
+                ? '✅ Feedback berhasil ditambahkan! Submission disetujui.'
+                : '❌ Feedback berhasil ditambahkan! Submission ditolak.'
         ]);
     }
 

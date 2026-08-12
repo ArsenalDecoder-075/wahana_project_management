@@ -92,12 +92,13 @@
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <strong>Deadline:</strong>
-                        <p>{{ $project->end_date }}</p>
-                    </div>
-                    <div class="col-md-6 mb-3">
                         <strong>Dibuat:</strong>
-                        <p>{{ $project->created_at->format('d M Y') }}</p>
+                        <p>{{ \Carbon\Carbon::parse($project->start_date)->format('d M Y') }}</p>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <strong>Deadline:</strong>
+                        <p>{{ \Carbon\Carbon::parse($project->end_date)->format('d M Y') }}</p>
                     </div>
                     <div class="col-12 mb-3">
                         <strong>Deskripsi:</strong>
@@ -140,9 +141,9 @@
                                 <option value="medium">🟡 Medium (Sedang)</option>
                                 <option value="high">🔴 High (Tinggi)</option>
                             </select>
-                            <small class="text-muted">
+                            {{-- <small class="text-muted">
                                 <i class="fas fa-info-circle"></i> Urgensi tugas
-                            </small>
+                            </small> --}}
                         </div>
 
                         <!-- Startdate -->
@@ -154,9 +155,9 @@
                                 min="{{ $project->start_date }}"
                                 max="{{ $project->end_date }}"
                                 required>
-                            <small class="text-muted">
+                            {{-- <small class="text-muted">
                                 <i class="fas fa-info-circle"></i> Min: {{ $project->start_date }} | Max: {{ $project->end_date }}
-                            </small>
+                            </small> --}}
                         </div>
 
                         <!-- Deadline -->
@@ -168,9 +169,9 @@
                                 min="{{ $project->start_date }}"
                                 max="{{ $project->end_date }}"
                                 required>
-                            <small class="text-muted">
+                            {{-- <small class="text-muted">
                                 <i class="fas fa-info-circle"></i> Min: {{ $project->start_date }} | Max: {{ $project->end_date }}
-                            </small>
+                            </small> --}}
                         </div>
 
                         <!-- Assign To -->
@@ -187,7 +188,7 @@
                                     <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $count }} tugas)</option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Pilih penanggung jawab tugas</small>
+                            {{-- <small class="text-muted">Pilih penanggung jawab tugas</small> --}}
                         </div>
 
                         {{-- Deskripsi Tugas --}}
@@ -200,9 +201,9 @@
                                     name="description"
                                     rows="2"
                                     placeholder="Deskripsi tugas... (opsional)"></textarea>
-                            <small class="text-muted">
+                            {{-- <small class="text-muted">
                                 <i class="fas fa-info-circle"></i> Detail tentang tugas
-                            </small>
+                            </small> --}}
                         </div>
 
                         <!-- Tombol Submit -->

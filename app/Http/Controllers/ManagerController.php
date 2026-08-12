@@ -373,13 +373,49 @@ class ManagerController extends Controller
                 ->addColumn('manager', function($row) {
                     return $row->manager ? $row->manager->name : '-';
                 })
-                ->addColumn('duration', function($row) {
-                    return $row->start_date . ' s/d ' . $row->end_date;
-                })
+                // ->addColumn('duration', function($row) {
+                //     return $row->start_date . ' s/d ' . $row->end_date;
+                // })
+                // ->addColumn('title', function($row) {
+                //     $title = '<div class="fw-bold text-dark mb-1">' . e($row->title) . '</div>';
+                //     $description = '<div class="text-muted small">' . e($row->description) . '</div>';
+                //     return $title . $description;
+                // })
                 ->addColumn('title', function($row) {
-                    $title = '<div class="fw-bold text-dark mb-1">' . e($row->title) . '</div>';
-                    $description = '<div class="text-muted small">' . e($row->description) . '</div>';
-                    return $title . $description;
+                    // Buat ID unik untuk collapse
+                    $collapseId = 'descCollapse_' . $row->id;
+
+                    $html = '
+                    <div class="project-title-wrapper">
+                        <div class="fw-bold text-dark mb-1" data-bs-toggle="collapse"
+                        data-bs-target="#' . $collapseId . '" aria-expanded="false">
+                        ' . e($row->title) . '
+                        </div>
+
+                        <!-- Deskripsi Proyek (Tersembunyi, akan muncul saat diklik) -->
+                        <div class="collapse mt-2" id="' . $collapseId . '">
+                        <p class="mb-0 text-dark">' . e($row->description) . '</p>
+                        </div>
+                    </div>
+                    ';
+
+                    return $html;
+                })
+                ->addColumn('duration', function($row) {
+                    // Format: 12 Agu 2026 (3 huruf awal bulan)
+                    $start = \Carbon\Carbon::parse($row->start_date)->format('d M Y');
+                    $end = \Carbon\Carbon::parse($row->end_date)->format('d M Y');
+
+                    return '
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-primary text-white px-3 py-2 rounded-pill">
+                                <i class="fas fa-calendar-day me-1"></i> ' . $start . '
+                            </span>
+                            <span class="badge bg-danger text-white px-3 py-2 rounded-pill">
+                                <i class="fas fa-calendar-times me-1"></i> ' . $end . '
+                            </span>
+                        </div>
+                    ';
                 })
                 ->addColumn('category_name', function($row) {
                     return '<span class="fw-bold">' . ($row->category?->name ?? 'Tidak Ada') . '</span>';
@@ -392,8 +428,19 @@ class ManagerController extends Controller
                         return '<span class="text-muted"><i class="fas fa-minus"></i> 0 tugas</span>';
                     }
 
-                    return '<span class="fw-bold">Jumlah Tugas : ' . $total . '</span>
-                            <span class="text-muted"> | Tugas Selesai: ' . $completed . ')</span>';
+                    // return '<span class="fw-bold">Jumlah Tugas : ' . $total . '</span>
+                    //         <span class="text-muted"> | Tugas Selesai: ' . $completed . ')</span>';
+
+                    return '
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-info text-white px-3 py-2 rounded-pill">
+                            <i class="fa-regular fa-square-check"></i></i> Jumlah Tugas : ' . $total . '
+                            </span>
+                            <span class="badge bg-success text-white px-3 py-2 rounded-pill">
+                            <i class="fa-regular fa-square"></i></i> Tugas Selesai : ' . $completed . '
+                            </span>
+                        </div>
+                    ';
                 })
                 ->addColumn('status_badge', function($row) {
                     $colors = [
@@ -408,8 +455,8 @@ class ManagerController extends Controller
                 ->addColumn('action', function($row) {
                     return '
                     <div class="btn-group" role="group">
-                        <a href="'.route('manager.tasks.manage', $row->id).'" class="btn btn-info btn-sm">
-                            <i class="lni lni-plus"></i> Kelola Tugas
+                        <a href="'.route('manager.tasks.manage', $row->id).'" class="btn btn-info btn-sm" title="Kelola Tugas Proyek">
+                            <i class="lni lni-plus"></i>
                         </a>
                         <button class="btn btn-warning btn-sm editProjectBtn"
                             data-id="'.$row->id.'"
@@ -430,7 +477,7 @@ class ManagerController extends Controller
                         </button>
                     </div>';
                 })
-                ->rawColumns(['title', 'total_tasks', 'status_badge', 'category_name',  'action'])
+                ->rawColumns(['title', 'duration', 'total_tasks', 'status_badge', 'category_name',  'action'])
                 ->make(true); // ✅ make(true) akan mengembalikan JSON response yang valid
         }
 
@@ -1041,6 +1088,7 @@ class ManagerController extends Controller
         $request->validate([
             'submission_id' => 'required|exists:task_submissions,id',
             'feedback_notes' => 'required|string|max:1000',
+            'status' => 'required|in:accepted,rejected' // Validasi status
         ]);
 
         $userId = Auth::id();
@@ -1067,13 +1115,15 @@ class ManagerController extends Controller
             'submission_id' => $request->submission_id,
             'manager_id' => $userId,
             'feedback_notes' => $request->feedback_notes,
-            'status' => 'accepted', // default, tidak mempengaruhi status tugas
+            'status' => $request->status, // Gunakan status dari request
             'reviewed_at' => now(),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Feedback berhasil ditambahkan!'
+            'message' => $request->status == 'approved'
+                ? '✅ Feedback berhasil ditambahkan! Submission disetujui.'
+                : '❌ Feedback berhasil ditambahkan! Submission ditolak.'
         ]);
     }
 

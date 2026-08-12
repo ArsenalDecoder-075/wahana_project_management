@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const colors = {
         pending: '#ffc107',
         progress: '#0dcaf0',
-        review: '#6f42c1',
+        review: '#C4C4C4',
         completed: '#198754',
         rejected: '#dc3545'
     };

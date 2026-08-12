@@ -284,7 +284,7 @@
                 // ajax: "{{ route(request()->route()->getName()) }}", // Mengambil data otomatis dari route index aktif
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'title', name: 'title' },
+                    { data: 'title', name: 'title' , width: '35%', className: 'text-wrap'},
                     { data: 'category_name', name: 'category_name' },
                     { data: 'duration', name: 'duration' },
                     { data: 'total_tasks', name: 'total_tasks' },
