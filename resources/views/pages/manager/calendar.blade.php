@@ -340,7 +340,7 @@ $(document).ready(function() {
                             data-project-id="${task.project_id}"
                             data-priority="${task.priority}"
                             title="${tooltip}">
-                            ${task.title} (${duration}h)
+                            ${task.title}
                         </div>`;
                 });
 

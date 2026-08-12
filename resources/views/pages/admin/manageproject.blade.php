@@ -230,8 +230,8 @@
                                 <th>#</th>
                                 <th>Proyek</th>
                                 <th>Penanggung Jawab</th>
-                                <th>Kategori Proyek</th>
-                                <th>Durasi Kontrak</th>
+                                <th>Kategori</th>
+                                <th>Durasi</th>
                                 <th>Total Tasks</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
@@ -278,7 +278,7 @@
                 ajax: "{{ route('admin.manage.project') }}",
                 columns: [
                     { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                    { data: 'title', name: 'title' }, // Ini sudah merangkap judul & deskripsi
+                    { data: 'title', name: 'title', width: '35%', className: 'text-wrap'}, // Ini sudah merangkap judul & deskripsi
                     { data: 'manager', name: 'manager' },
                     { data: 'category_name', name: 'category_name' },
                     { data: 'duration', name: 'duration' },

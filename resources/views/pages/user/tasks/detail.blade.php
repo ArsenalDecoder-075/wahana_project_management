@@ -2,6 +2,223 @@
 <title>Detail Tugas - {{ $task->title }}</title>
 
 @section('content')
+<style>
+    /* ===== CHAT CONTAINER ===== */
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 8px 0;
+    }
+
+    /* ===== CHAT MESSAGE WRAPPER ===== */
+    .chat-message {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        margin-bottom: 12px;
+    }
+
+    .chat-message-left {
+        justify-content: flex-start;
+    }
+
+    .chat-message-right {
+        justify-content: flex-end;
+    }
+
+    /* ===== AVATAR ===== */
+    .chat-avatar {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+    }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+        text-transform: uppercase;
+    }
+
+    .avatar-circle.bg-primary { background: #4e73df; }
+    .avatar-circle.bg-success { background: #1cc88a; }
+    .avatar-circle.bg-danger { background: #e74a3b; }
+    .avatar-circle.bg-warning { background: #f6c23e; color: #333; }
+
+    /* ===== CHAT BUBBLE ===== */
+    .chat-bubble {
+        max-width: 75%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: #f1f3f5;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        word-wrap: break-word;
+        flex: 0 1 auto;
+    }
+
+    .chat-bubble-left {
+        background: #e9ecef;
+        border-bottom-left-radius: 4px;
+    }
+
+    .chat-bubble-success {
+        background: #d4edda;
+        border-bottom-right-radius: 4px;
+        border-left: 4px solid #28a745;
+    }
+
+    .chat-bubble-danger {
+        background: #f8d7da;
+        border-bottom-right-radius: 4px;
+        border-left: 4px solid #dc3545;
+    }
+
+    .chat-bubble-warning {
+        background: #fff3cd;
+        border-bottom-right-radius: 4px;
+        border-left: 4px solid #ffc107;
+    }
+
+    /* Urutan elemen */
+    .chat-message-left .chat-avatar { order: 0; }
+    .chat-message-left .chat-bubble { order: 1; }
+
+    .chat-message-right .chat-avatar { order: 1; }
+    .chat-message-right .chat-bubble { order: 0; }
+
+    /* ===== CHAT HEADER ===== */
+    .chat-header {
+        display: flex;
+        justify-content: flex-start !important;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+    }
+
+    .chat-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #2c3e50;
+    }
+
+    .chat-time {
+        font-size: 0.7rem;
+        color: #6c757d;
+    }
+
+    /* ===== CHAT BODY ===== */
+    .chat-body {
+        text-align: left !important;
+        font-size: 0.95rem;
+        color: #212529;
+        word-break: break-word;
+    }
+
+    /* ===== CHAT FOOTER ===== */
+    .chat-footer {
+        margin-top: 8px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    /* ===== SCROLLBAR STYLING ===== */
+    .card-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .card-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .card-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+
+    .card-body::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+        .chat-bubble {
+            max-width: 100%;
+        }
+        .chat-avatar {
+            width: 32px;
+            height: 32px;
+        }
+        .avatar-circle {
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+        }
+        .chat-bubble {
+            padding: 8px 12px;
+        }
+        .chat-name {
+            font-size: 0.8rem;
+        }
+        .chat-body {
+            font-size: 0.85rem;
+        }
+    }
+
+    .chat-reply-quote {
+        background: rgba(0,0,0,0.05);
+        border-left: 3px solid #6c757d;
+        padding: 4px 10px;
+        margin-bottom: 6px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #495057;
+    }
+
+    .chat-reply-quote .quote-text {
+        font-style: italic;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* Jika pesan kanan, kutipan juga rata kiri */
+    .chat-message-right .chat-reply-quote {
+        text-align: left;
+    }
+
+    /* ===== ANIMASI ===== */
+    .chat-message {
+        animation: fadeInUp 0.3s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
     <div class="container-fluid">
         <div class="row align-items-center mb-4">
             <div class="col-md-6">
@@ -18,132 +235,231 @@
             </div>
         </div>
 
-        <div class="row" style="display: flex; flex-wrap: wrap;">
-            {{-- Kolom Kiri: Informasi Tugas + Tombol Aksi --}}
-            <div class="col-md-6" style="display: flex;">
-                <div class="card mb-4" style="flex: 1;">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fa-solid fa-info me-2"></i>
-                            Informasi Tugas
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            {{-- Judul & Deskripsi --}}
-                            <div class="col-md-8">
-                                <h4 class="mb-2">{{ $task->title }}</h4>
-                                <p class="text-muted mb-0">
-                                    {{ $task->description ?? 'Tidak ada deskripsi' }}
-                                </p>
-                            </div>
 
-                            {{-- Status & Info --}}
-                            <div class="col-md-4">
-                                <div class="border-start ps-3">
-                                    {{-- Status --}}
-                                    <div class="mb-2">
-                                        <span class="text-muted">Status:</span>
-                                        {{-- <span class="badge
-                                            @if($task->status == 'Pending') bg-warning text-dark
-                                            @elseif($task->status == 'On Progress') bg-info
-                                            @elseif($task->status == 'Completed') bg-success
-                                            @endif
-                                            fs-6" id="currentStatusBadge">
-                                            {{ $task->status }}
-                                        </span> --}}
-                                        <span class="badge
-                                            @if($task->status == 'Pending') bg-warning text-dark
-                                            @elseif($task->status == 'On Progress') bg-info
-                                            @elseif($task->status == 'Review') bg-secondary
-                                            @elseif($task->status == 'Rejected') bg-danger
-                                            @elseif($task->status == 'Completed') bg-success
-                                            @endif
-                                            fs-6" id="currentStatusBadge">
-                                            {{ $task->status }}
-                                        </span>
-                                    </div>
+        {{-- Informasi Tugas + Tombol Aksi --}}
+        <div class="col-md-12" style="display: flex;">
+            <div class="card mb-4" style="flex: 1;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fa-solid fa-info me-2"></i>
+                        Informasi Tugas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {{-- Judul & Deskripsi --}}
+                        <div class="col-md-8">
+                            <h4 class="mb-2">{{ $task->title }}</h4>
+                            <p class="text-muted mb-0">
+                                {{ $task->description ?? 'Tidak ada deskripsi' }}
+                            </p>
+                        </div>
 
-                                    {{-- Prioritas --}}
-                                    <div class="mb-2">
-                                        <span class="text-muted">Prioritas:</span>
-                                        @php
-                                            $priorityColors = ['low' => 'info','medium' => 'warning','high' => 'danger'];
-                                            $priorityText = ['low' => 'LOW','medium' => 'MEDIUM','high' => 'HIGH'];
-                                            $priorityTextColors = ['low' => 'text-dark','medium' => 'text-dark','high' => 'text-white'];
-                                        @endphp
-                                        <span class="badge bg-{{ $priorityColors[$task->priority] ?? 'secondary' }} {{ $priorityTextColors[$task->priority] ?? '' }}">
-                                            {{ $priorityText[$task->priority] ?? '-' }}
-                                        </span>
-                                    </div>
-
-                                    {{-- Deadline --}}
-                                    <div class="mb-2">
-                                        <span class="text-muted">Deadline:</span>
-                                        <strong>{{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}</strong>
-                                        @php
-                                            $daysLeft = \Carbon\Carbon::now()->diffInDays($task->deadline, false);
-                                        @endphp
-                                        @if($task->status != 'Completed')
-                                            @if($daysLeft < 0)
-                                                <span class="badge bg-danger ms-1">Terlambat</span>
-                                            @elseif($daysLeft <= 3)
-                                                <span class="badge bg-warning text-dark ms-1">Mendesak</span>
-                                            @endif
+                        {{-- Status & Info --}}
+                        <div class="col-md-4">
+                            <div class="border-start ps-3">
+                                {{-- Status --}}
+                                <div class="mb-2">
+                                    <span class="text-muted">Status:</span>
+                                    <span class="badge
+                                        @if($task->status == 'Pending') bg-warning text-dark
+                                        @elseif($task->status == 'On Progress') bg-info
+                                        @elseif($task->status == 'Review') bg-secondary
+                                        @elseif($task->status == 'Rejected') bg-danger
+                                        @elseif($task->status == 'Completed') bg-success
                                         @endif
-                                    </div>
+                                        fs-6" id="currentStatusBadge">
+                                        {{ $task->status }}
+                                    </span>
+                                </div>
 
-                                    {{-- Pembuat --}}
-                                    <div class="mb-2">
-                                        <span class="text-muted">Dibuat oleh:</span>
-                                        <strong>{{ $task->creator->name ?? '-' }}</strong>
-                                    </div>
+                                {{-- Prioritas --}}
+                                <div class="mb-2">
+                                    <span class="text-muted">Prioritas:</span>
+                                    @php
+                                        $priorityColors = ['low' => 'info','medium' => 'warning','high' => 'danger'];
+                                        $priorityText = ['low' => 'LOW','medium' => 'MEDIUM','high' => 'HIGH'];
+                                        $priorityTextColors = ['low' => 'text-dark','medium' => 'text-dark','high' => 'text-white'];
+                                    @endphp
+                                    <span class="badge bg-{{ $priorityColors[$task->priority] ?? 'secondary' }} {{ $priorityTextColors[$task->priority] ?? '' }}">
+                                        {{ $priorityText[$task->priority] ?? '-' }}
+                                    </span>
+                                </div>
 
-                                    {{-- Tombol Aksi --}}
-                                    <div>
-                                        @if($task->status == 'Pending')
-                                            <button class="btn btn-warning w-100" id="btnOnProgress">
-                                                <i class="fas fa-play me-2"></i> Mulai Kerjakan
-                                            </button>
-                                            <small class="text-muted d-block mt-2" id="statusMessage">
-                                                <i class="fas fa-info-circle me-1"></i> Mulai kerjakan tugas
-                                            </small>
-                                        @elseif($task->status == 'On Progress')
-                                            <button class="btn btn-success w-100" id="btnReview">
-                                                <i class="fas fa-check me-2"></i> Mulai Review
-                                            </button>
-                                            <small class="text-muted d-block mt-2" id="statusMessage">
-                                                <i class="fas fa-info-circle me-1"></i> Ini akan memberikan notif ke atasan bahwa tugas ini siap untuk diverifikasi dan menunggu review. Masih bisa mengirim catatan tambahan jika diperlukan.
-                                            </small>
-                                        @elseif($task->status == 'Review')
-                                            <button class="btn btn-secondary w-100" disabled>
-                                                <i class="fas fa-clock me-2"></i> Sedang Direview
-                                            </button>
-                                            <small class="text-muted d-block mt-2" id="statusMessage">
-                                                <i class="fas fa-info-circle me-1"></i> Tugas sedang dalam proses review oleh atasan. Anda masih dapat menambahkan catatan jika diperlukan.
-                                            </small>
-                                        @elseif($task->status == 'Rejected')
-                                            <button class="btn btn-warning w-100" id="btnOnProgress">
-                                                <i class="fas fa-redo me-2"></i> Mulai Kerjakan Kembali
-                                            </button>
-                                            <small class="text-muted d-block mt-2" id="statusMessage">
-                                                <i class="fas fa-info-circle me-1"></i> Tugas ditolak, silakan perbaiki dan kerjakan kembali.
-                                            </small>
-                                        @elseif($task->status == 'Completed')
-                                            <button class="btn btn-secondary w-100" disabled>
-                                                <i class="fas fa-check-circle me-2"></i> Selesai
-                                            </button>
-                                            <small class="text-muted d-block mt-2" id="statusMessage">
-                                                <i class="fas fa-check-circle text-success me-1"></i> Tugas selesai!
-                                            </small>
+                                {{-- Deadline --}}
+                                <div class="mb-2">
+                                    <span class="text-muted">Deadline:</span>
+                                    <strong>{{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}</strong>
+                                    @php
+                                        $daysLeft = \Carbon\Carbon::now()->diffInDays($task->deadline, false);
+                                    @endphp
+                                    @if($task->status != 'Completed')
+                                        @if($daysLeft < 0)
+                                            <span class="badge bg-danger ms-1">Terlambat</span>
+                                        @elseif($daysLeft <= 3)
+                                            <span class="badge bg-warning text-dark ms-1">Mendesak</span>
                                         @endif
-                                    </div>
+                                    @endif
+                                </div>
+
+                                {{-- Pembuat --}}
+                                <div class="mb-2">
+                                    <span class="text-muted">Dibuat oleh:</span>
+                                    <strong>{{ $task->creator->name ?? '-' }}</strong>
+                                </div>
+
+                                {{-- Tombol Aksi --}}
+                                <div>
+                                    @if($task->status == 'Pending')
+                                        <button class="btn btn-warning w-100" id="btnOnProgress">
+                                            <i class="fas fa-play me-2"></i> Mulai Kerjakan
+                                        </button>
+                                        <small class="text-muted d-block mt-2" id="statusMessage">
+                                            <i class="fas fa-info-circle me-1"></i> Mulai kerjakan tugas
+                                        </small>
+                                    @elseif($task->status == 'On Progress')
+                                        <button class="btn btn-success w-100" id="btnReview">
+                                            <i class="fas fa-check me-2"></i> Mulai Review
+                                        </button>
+                                        <small class="text-muted d-block mt-2" id="statusMessage">
+                                            <i class="fas fa-info-circle me-1"></i> Ini akan memberikan notif ke atasan bahwa tugas ini siap untuk diverifikasi dan menunggu review. Masih bisa mengirim catatan tambahan jika diperlukan.
+                                        </small>
+                                    @elseif($task->status == 'Review')
+                                        <button class="btn btn-secondary w-100" disabled>
+                                            <i class="fas fa-clock me-2"></i> Sedang Direview
+                                        </button>
+                                        <small class="text-muted d-block mt-2" id="statusMessage">
+                                            <i class="fas fa-info-circle me-1"></i> Tugas sedang dalam proses review oleh atasan. Anda masih dapat menambahkan catatan jika diperlukan.
+                                        </small>
+                                    @elseif($task->status == 'Rejected')
+                                        <button class="btn btn-warning w-100" id="btnOnProgress">
+                                            <i class="fas fa-redo me-2"></i> Mulai Kerjakan Kembali
+                                        </button>
+                                        <small class="text-muted d-block mt-2" id="statusMessage">
+                                            <i class="fas fa-info-circle me-1"></i> Tugas ditolak, silakan perbaiki dan kerjakan kembali.
+                                        </small>
+                                    @elseif($task->status == 'Completed')
+                                        <button class="btn btn-secondary w-100" disabled>
+                                            <i class="fas fa-check-circle me-2"></i> Selesai
+                                        </button>
+                                        <small class="text-muted d-block mt-2" id="statusMessage">
+                                            <i class="fas fa-check-circle text-success me-1"></i> Tugas selesai!
+                                        </small>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="row mb-4 mt-2" style="display: flex; flex-wrap: wrap; align-items: stretch;">
+            {{-- Riwayat Catatan & Feedback (Tampilan Chat) --}}
+            <div class="col-md-6 d-flex">
+                @if($messages->count() > 0)
+                <div class="card mb-4 w-100 flex-fill">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>
+                            Riwayat Catatan & Feedback
+                        </h5>
+                    </div>
+                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                        <div class="chat-container">
+                            @foreach($messages as $msg)
+                                @if($msg->type == 'submission')
+                                    {{-- Pesan dari Karyawan (KIRI) --}}
+                                    <div class="chat-message chat-message-left">
+                                        <div class="chat-avatar">
+                                            <div class="avatar-circle bg-primary">
+                                                {{ substr($msg->user_name, 0, 1) }}
+                                            </div>
+                                        </div>
+                                        <div class="chat-bubble chat-bubble-left">
+                                            <div class="chat-header">
+                                                <span class="chat-name">{{ $msg->user_name }}</span>
+                                                <span class="chat-time">{{ $msg->created_at->format('d M Y, H:i') }}</span>
+                                            </div>
+                                            {{-- Tidak ada reply_to untuk submission --}}
+                                            <div class="chat-body">
+                                                {{ $msg->message }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    {{-- Feedback dari Atasan (KANAN) --}}
+                                    <div class="chat-message chat-message-right">
+                                        <div class="chat-bubble
+                                            @if($msg->status == 'accepted') chat-bubble-success
+                                            @elseif($msg->status == 'rejected') chat-bubble-danger
+                                            @else chat-bubble-warning
+                                            @endif
+                                        ">
+                                            <div class="chat-header">
+                                                <span class="chat-name">
+                                                    @if($msg->status == 'accepted')
+                                                        <i class="fas fa-check-circle text-success me-1"></i>
+                                                    @elseif($msg->status == 'rejected')
+                                                        <i class="fas fa-times-circle text-danger me-1"></i>
+                                                    @else
+                                                        <i class="fas fa-clock text-warning me-1"></i>
+                                                    @endif
+                                                    {{ $msg->user_name }}
+                                                </span>
+                                                <span class="chat-time">{{ $msg->created_at->format('d M Y, H:i') }}</span>
+                                            </div>
+
+                                            {{-- ✅ Tampilkan "Membalas" jika ada reply_to --}}
+                                            @if($msg->reply_to)
+                                                <div class="chat-reply-quote">
+                                                    <i class="fas fa-reply fa-flip-horizontal me-1 text-muted"></i>
+                                                    <span class="text-muted">Membalas:</span>
+                                                    <div class="quote-text">
+                                                        {{ \Illuminate\Support\Str::limit($msg->reply_to, 50) }}
+                                                    </div>
+                                                </div>
+                                            @endif
+
+                                            <div class="chat-body">
+                                                {{ $msg->message }}
+                                            </div>
+                                            <div class="chat-footer">
+                                                <span class="badge
+                                                    @if($msg->status == 'accepted') bg-success
+                                                    @elseif($msg->status == 'rejected') bg-danger
+                                                    @else bg-warning text-dark
+                                                    @endif
+                                                    status-badge">
+                                                    @if($msg->status == 'accepted')
+                                                        <i class="fas fa-check me-1"></i> Disetujui
+                                                    @elseif($msg->status == 'rejected')
+                                                        <i class="fas fa-times me-1"></i> Ditolak
+                                                    @else
+                                                        <i class="fas fa-clock me-1"></i> Menunggu
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="chat-avatar">
+                                            <div class="avatar-circle
+                                                @if($msg->status == 'accepted') bg-success
+                                                @elseif($msg->status == 'rejected') bg-danger
+                                                @else bg-warning
+                                                @endif
+                                            ">
+                                                {{ substr($msg->user_name, 0, 1) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+
 
             {{-- Kolom Kanan: Kirim Catatan Tugas --}}
             <div class="col-md-6" style="display: flex;">
@@ -202,60 +518,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- Riwayat Catatan (hanya tampil jika status bukan Pending dan ada riwayat) --}}
-        @if($task->submissions->count() > 0)
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2"></i>
-                        Riwayat Catatan
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle" style="border-collapse: collapse; width: 100%;">
-                            <thead>
-                                <tr>
-                                    <th style="width: 5%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">#</th>
-                                    <th style="width: 45%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Catatan</th>
-                                    <th style="width: 25%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Status</th>
-                                    <th style="width: 15%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Tanggal</th>
-                                    @if($task->status != 'Completed')
-                                    <th style="width: 10%; text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">Aksi</th>
-                                    @endif
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($task->submissions->sortBy('created_at') as $index => $sub)
-                                    @if($sub->employee_id == Auth::id())
-                                    <tr>
-                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">{{ $index + 1 }}</td>
-                                        <td style="padding: 12px 8px; border: 1px solid #dee2e6;">{{ $sub->notes ?? '-' }}</td>
-                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
-                                            @if($sub->status == 'pending')
-                                                <span class="badge bg-warning text-dark">Pending</span>
-                                            @elseif($sub->status == 'reviewed')
-                                                <span class="badge bg-success">Reviewed</span>
-                                            @else
-                                                <span class="badge bg-secondary">{{ $sub->status }}</span>
-                                            @endif
-                                        </td>
-                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">{{ $sub->created_at->format('d M Y H:i') }}</td>
-                                        @if($task->status != 'Completed')
-                                        <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
-                                            {{-- Tombol aksi jika diperlukan --}}
-                                        </td>
-                                        @endif
-                                    </tr>
-                                    @endif
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            @endif
     </div>
 @endsection
 
@@ -379,16 +641,6 @@ $(document).ready(function() {
         });
     }
 
-    // ============================================================
-    // 3. EVENT LISTENER (LANGSUNG)
-    // ============================================================
-    // $('#btnOnProgress').on('click', function() {
-    //     console.log('🔥 4. Tombol On Progress DIKLIK (langsung)!');
-    //     if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
-    //         updateTaskStatus('On Progress');
-    //     }
-    // });
-
     $(document).on('click', '#btnOnProgress', function() {
         console.log('🔥 Tombol On Progress DIKLIK!');
         if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
@@ -403,27 +655,6 @@ $(document).ready(function() {
             updateTaskStatus('Review');
         }
     });
-
-    // $('#btnComplete').on('click', function() {
-    //     console.log('🔥 5. Tombol Complete DIKLIK (langsung)!');
-    //     if (confirm('Apakah Anda yakin tugas ini sudah selesai?')) {
-    //         updateTaskStatus('Completed');
-    //     }
-    // });
-
-    // ============================================================
-    // 4. EVENT LISTENER (DELEGASI - CADANGAN)
-    // ============================================================
-    // $(document).on('click', '#btnOnProgress', function(e) {
-    //     if (!$(this).data('handled')) {
-    //         $(this).data('handled', true);
-    //         console.log('🔥 Tombol On Progress DIKLIK (delegasi)!');
-    //         if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
-    //             updateTaskStatus('On Progress');
-    //         }
-    //         setTimeout(() => $(this).data('handled', false), 500);
-    //     }
-    // });
 
     $(document).on('click', '#btnComplete', function(e) {
         if (!$(this).data('handled')) {
