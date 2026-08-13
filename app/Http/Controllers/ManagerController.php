@@ -928,7 +928,8 @@ class ManagerController extends Controller
 
         // Ambil submission urut dari yang paling LAMA ke yang terbaru (asc)
         $submissions = $task->submissions()
-            ->with(['employee', 'reviews.reviewer'])
+            ->with(['employee', 'reviews.reviewer', 'files']) // tambahkan 'files'
+            ->where('task_id', $task_id)
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -1088,7 +1089,7 @@ class ManagerController extends Controller
         $request->validate([
             'submission_id' => 'required|exists:task_submissions,id',
             'feedback_notes' => 'required|string|max:1000',
-            'status' => 'required|in:accepted,rejected' // Validasi status
+            'status' => 'required|in:accepted,revision needed,rejected' // Validasi status
         ]);
 
         $userId = Auth::id();
@@ -1119,11 +1120,16 @@ class ManagerController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        $message = match($request->status) {
+            'accepted' => '✅ Feedback berhasil! Submission disetujui.',
+            'revision needed' => '🔄 Feedback berhasil! Submission butuh revisi.',
+            'rejected' => '❌ Feedback berhasil! Submission ditolak.',
+            default => 'Feedback berhasil ditambahkan.'
+        };
+
         return response()->json([
             'success' => true,
-            'message' => $request->status == 'approved'
-                ? '✅ Feedback berhasil ditambahkan! Submission disetujui.'
-                : '❌ Feedback berhasil ditambahkan! Submission ditolak.'
+            'message' => $message
         ]);
     }
 

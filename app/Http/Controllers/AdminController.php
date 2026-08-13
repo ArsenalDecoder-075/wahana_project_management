@@ -1422,7 +1422,8 @@ class AdminController extends Controller
         $task = Task::with(['assignee', 'creator'])->findOrFail($task_id);
 
         // Ambil SEMUA submission untuk tugas ini (urut dari yang terbaru)
-        $submissions = TaskSubmission::with(['employee'])
+        $submissions = $task->submissions()
+            ->with(['employee', 'reviews.reviewer', 'files']) // tambahkan 'files'
             ->where('task_id', $task_id)
             ->orderBy('created_at', 'asc')
             ->get();

@@ -8,6 +8,8 @@ use App\Models\Task;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Models\ReportSetting;
+use App\Models\TaskSubmission;
+use App\Models\SubmissionFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -87,8 +89,8 @@ class UserController extends Controller
             'creator',
             'submissions' => function($query) use ($user) {
                 $query->where('employee_id', $user->id)
-                    ->with(['reviews.reviewer'])
-                    ->orderBy('created_at', 'asc');
+                      ->with(['files', 'reviews.reviewer']) // ✅ tambahkan files
+                      ->orderBy('created_at', 'asc');
             }
         ])
         ->where('id', $taskId)
@@ -115,6 +117,7 @@ class UserController extends Controller
                 'is_employee' => true,
                 'status' => $sub->status,
                 'reply_to' => null, // tidak ada reply
+                'files' => $sub->files, // ✅ tambahkan files ke object
             ]);
 
             // Tambahkan review (feedback dari atasan)
@@ -138,37 +141,37 @@ class UserController extends Controller
         return view('pages.user.tasks.detail', compact('task', 'submission', 'messages'));
     }
 
-    public function submitTaskNotes(Request $request)
-    {
-        $request->validate([
-            'task_id' => 'required|exists:tasks,id',
-            'notes' => 'nullable|string|max:1000',
-        ]);
+    // public function submitTaskNotes(Request $request)
+    // {
+    //     $request->validate([
+    //         'task_id' => 'required|exists:tasks,id',
+    //         'notes' => 'nullable|string|max:1000',
+    //     ]);
 
-        $task = Task::findOrFail($request->task_id);
+    //     $task = Task::findOrFail($request->task_id);
 
-        // Cek apakah task ini milik user yang login
-        if ($task->assigned_to != Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk tugas ini.'
-            ], 403);
-        }
+    //     // Cek apakah task ini milik user yang login
+    //     if ($task->assigned_to != Auth::id()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Anda tidak memiliki akses untuk tugas ini.'
+    //         ], 403);
+    //     }
 
-        // Buat submission baru
-        $submission = \App\Models\TaskSubmission::create([
-            'task_id' => $task->id,
-            'employee_id' => Auth::id(),
-            'notes' => $request->notes,
-            'status' => 'pending'
-        ]);
+    //     // Buat submission baru
+    //     $submission = \App\Models\TaskSubmission::create([
+    //         'task_id' => $task->id,
+    //         'employee_id' => Auth::id(),
+    //         'notes' => $request->notes,
+    //         'status' => 'pending'
+    //     ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Catatan berhasil dikirim!',
-            'data' => $submission
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Catatan berhasil dikirim!',
+    //         'data' => $submission
+    //     ]);
+    // }
 
 
 
@@ -397,6 +400,55 @@ class UserController extends Controller
             ->get();
 
         return view('pages.user.tasks.index', compact('project', 'tasks'));
+    }
+
+    // Upload file bukti / submission files
+    public function submitTaskNotes(Request $request)
+    {
+        $request->validate([
+            'task_id' => 'required|exists:tasks,id',
+            'notes' => 'nullable|string|max:1000',
+            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:5120',
+        ]);
+
+        $task = Task::findOrFail($request->task_id);
+
+        if ($task->assigned_to != Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk tugas ini.'
+            ], 403);
+        }
+
+        // Buat submission
+        $submission = TaskSubmission::create([
+            'task_id' => $task->id,
+            'employee_id' => Auth::id(),
+            'notes' => $request->notes,
+            'status' => 'pending'
+        ]);
+
+        // Upload file jika ada
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                // Simpan di storage/public/submissions
+                $path = $file->store('submissions', 'public');
+
+                SubmissionFile::create([
+                    'submission_id' => $submission->id,
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Catatan berhasil dikirim!',
+            'data' => $submission
+        ]);
     }
 
 

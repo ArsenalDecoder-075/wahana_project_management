@@ -56,13 +56,28 @@ class UserSeeder extends Seeder
                 'type' => 2, //Manager
             ],
             // User untuk Branch 1 (Area 1, type 0)
+            // Siapkan 3
             [
                 'branch_id' => 1,
-                'name' => 'UserWPM',
-                'email' => 'user@example.com',
-                'password' => Hash::make('user123'),
+                'name' => 'UserWPM1',
+                'email' => 'user1@example.com',
+                'password' => Hash::make('user123a1'),
                 'type' => 0, //Kayrawan
-            ]
+            ],
+            [
+                'branch_id' => 1,
+                'name' => 'UserWPM2',
+                'email' => 'user2@example.com',
+                'password' => Hash::make('user123a2'),
+                'type' => 0, //Kayrawan
+            ],
+            [
+                'branch_id' => 1,
+                'name' => 'UserWPM3',
+                'email' => 'user3@example.com',
+                'password' => Hash::make('user123a3'),
+                'type' => 0, //Kayrawan
+            ],
         ];
 
         foreach ($users as $user) {

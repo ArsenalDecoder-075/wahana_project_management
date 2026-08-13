@@ -217,6 +217,15 @@
             transform: translateY(0);
         }
     }
+
+    .preview-item {
+        display: inline-block;
+        text-align: center;
+        margin: 4px;
+    }
+    .preview-item img {
+        object-fit: cover;
+    }
 </style>
 
     <div class="container-fluid">
@@ -385,6 +394,32 @@
                                             <div class="chat-body">
                                                 {{ $msg->message }}
                                             </div>
+                                            {{-- Bagian untuk tampilin gambar submission karyawan --}}
+                                            @if($msg->type == 'submission' && isset($msg->files) && $msg->files->count() > 0)
+                                                <div class="chat-files mt-2">
+                                                    @foreach($msg->files as $file)
+                                                        <div class="file-item d-inline-block me-2 mb-2">
+                                                            @php
+                                                                $isImage = in_array($file->mime_type, ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+                                                            @endphp
+                                                            @if($isImage)
+                                                                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" title="{{ $file->file_name }}" style="display: block; width: 100%;">
+                                                                    <img src="{{ asset('storage/' . $file->file_path) }}"
+                                                                        alt="{{ $file->file_name }}"
+                                                                        style="width: 100%; height: auto; max-width: 100%; border-radius: 8px; border: 1px solid #ddd; object-fit: contain;">
+                                                                </a>
+                                                                <div class="file-info small text-muted mt-1">
+                                                                    <i class="fas fa-image me-1"></i> {{ $file->file_name }}
+                                                                </div>
+                                                            @else
+                                                                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                                    <i class="fas fa-file me-1"></i> {{ $file->file_name }}
+                                                                </a>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 @else
@@ -488,13 +523,29 @@
                                 <small class="text-muted">Dikirim: {{ $submission->created_at->format('d M Y H:i') }}</small>
                             </div>
                         @else
-                            <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}">
+                            {{-- <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}"> --}}
+                            <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}" enctype="multipart/form-data">
                                 @csrf
                                 <input type="hidden" name="task_id" value="{{ $task->id }}">
                                 <div class="mb-3">
                                     <label for="notes" class="form-label">Catatan <span class="text-muted">(opsional)</span></label>
                                     <textarea class="form-control" id="notes" name="notes" rows="5" placeholder="Tulis catatan atau penjelasan tentang pengerjaan tugas ini..."></textarea>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="files" class="form-label">
+                                        <i class="fas fa-paperclip me-1"></i> Lampiran (opsional)
+                                    </label>
+                                    <input type="file"
+                                           class="form-control"
+                                           id="files"
+                                           name="files[]"
+                                           multiple
+                                           accept="image/*,.pdf,.doc,.docx">
+                                    <small class="text-muted">
+                                        Format: JPG, PNG, GIF, WebP, PDF, DOC, DOCX. Maksimal 5MB per file.
+                                    </small>
+                                </div>
+                                <div id="file-preview" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <button type="submit" class="btn btn-success" id="submitNotesBtn">
                                     <i class="fas fa-paper-plane me-1"></i> Kirim Catatan
                                 </button>
@@ -524,189 +575,221 @@
 {{-- Scripts --}}
 @push('scripts')
 <script>
-$(document).ready(function() {
-    console.log('✅ 1. Document ready!');
-    console.log('🔍 2. Tombol btnOnProgress:', $('#btnOnProgress').length);
-    console.log('🔍 3. Tombol btnComplete:', $('#btnComplete').length);
-    console.log('🔍 4. Badge status:', $('#currentStatusBadge').length);
-    console.log('🔍 5. Pesan status:', $('#statusMessage').length);
-
-    // ============================================================
-    // 1. FUNGSI SHOW TOAST
-    // ============================================================
-    function showToast(message, type = 'success') {
-        if ($('#toast-container').length === 0) {
-            $('body').append(`
-                <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;"></div>
-            `);
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
+    });
+    $(document).ready(function() {
+        console.log('✅ 1. Document ready!');
+        console.log('🔍 2. Tombol btnOnProgress:', $('#btnOnProgress').length);
+        console.log('🔍 3. Tombol btnComplete:', $('#btnComplete').length);
+        console.log('🔍 4. Badge status:', $('#currentStatusBadge').length);
+        console.log('🔍 5. Pesan status:', $('#statusMessage').length);
 
-        const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
-        const icon = type === 'success' ? '✅' : '❌';
+        // 1. FUNGSI SHOW TOAST
+        function showToast(message, type = 'success') {
+            if ($('#toast-container').length === 0) {
+                $('body').append(`
+                    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;"></div>
+                `);
+            }
 
-        const toast = `
-            <div class="toast show align-items-center text-white ${bgClass} border-0 mb-2 shadow-lg" role="alert" style="border-radius: 8px;">
-                <div class="d-flex p-3">
-                    <div class="toast-body fw-bold">${icon} ${message}</div>
-                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast"></button>
+            const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+            const icon = type === 'success' ? '✅' : '❌';
+
+            const toast = `
+                <div class="toast show align-items-center text-white ${bgClass} border-0 mb-2 shadow-lg" role="alert" style="border-radius: 8px;">
+                    <div class="d-flex p-3">
+                        <div class="toast-body fw-bold">${icon} ${message}</div>
+                        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast"></button>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
-        $('#toast-container').append(toast);
-        setTimeout(() => {
-            $('#toast-container .toast:first').remove();
-        }, 5000);
-    }
-
-    // ============================================================
-    // 2. FUNGSI UPDATE STATUS
-    // ============================================================
-    function updateTaskStatus(status) {
-        console.log('🔄 updateTaskStatus dipanggil, status:', status);
-
-        const btn = status === 'On Progress' ? $('#btnOnProgress') : status === 'Review' ? $('#btnReview') : $('#btnComplete');
-        const originalText = btn.html();
-
-        if (!btn.length) {
-            console.error('❌ Tombol tidak ditemukan!');
-            return;
+            $('#toast-container').append(toast);
+            setTimeout(() => {
+                $('#toast-container .toast:first').remove();
+            }, 5000);
         }
 
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Memproses...');
+        // 2. FUNGSI UPDATE STATUS
+        function updateTaskStatus(status) {
+            console.log('🔄 updateTaskStatus dipanggil, status:', status);
 
-        $.ajax({
-            url: "{{ route('user.tasks.updateStatus') }}",
-            method: 'POST',
-            data: {
-                _token: "{{ csrf_token() }}",
-                task_id: "{{ $task->id }}",
-                status: status
-            },
-            success: function(response) {
-                console.log('✅ Response success:', response);
+            const btn = status === 'On Progress' ? $('#btnOnProgress') : status === 'Review' ? $('#btnReview') : $('#btnComplete');
+            const originalText = btn.html();
 
-                if (response.success) {
-                    // 1. Update badge status
-                    const statusMap = {
-                        'Pending': 'bg-warning text-dark',
-                        'On Progress': 'bg-info',
-                        'Review': 'bg-primary',
-                        'Rejected': 'bg-danger',
-                        'Completed': 'bg-success'
-                    };
-                    $('#currentStatusBadge')
-                        .removeClass('bg-warning text-dark bg-info bg-success')
-                        .addClass(statusMap[response.new_status])
-                        .text(response.new_status);
+            if (!btn.length) {
+                console.error('❌ Tombol tidak ditemukan!');
+                return;
+            }
 
-                    // 2. Update tombol dan pesan
-                    if (response.new_status === 'On Progress') {
-                        $('#btnOnProgress')
-                            .replaceWith(`
-                                <button class="btn btn-success w-100" id="btnComplete">
-                                    <i class="fas fa-check me-2"></i> Selesaikan Tugas
-                                </button>
-                            `);
-                        $('#statusMessage').html('<i class="fas fa-info-circle me-1"></i> Selesaikan tugas dengan mengubah status ke "Completed"');
-                    } else if (response.new_status === 'Completed') {
-                        $('#btnComplete')
-                            .replaceWith(`
-                                <button class="btn btn-secondary w-100" disabled>
-                                    <i class="fas fa-check-circle me-2"></i> Selesai
-                                </button>
-                            `);
-                        $('#statusMessage').html('<i class="fas fa-check-circle text-success me-1"></i> Tugas ini sudah selesai!');
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Memproses...');
+
+            $.ajax({
+                url: "{{ route('user.tasks.updateStatus') }}",
+                method: 'POST',
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    task_id: "{{ $task->id }}",
+                    status: status
+                },
+                success: function(response) {
+                    console.log('✅ Response success:', response);
+
+                    if (response.success) {
+                        // 1. Update badge status
+                        const statusMap = {
+                            'Pending': 'bg-warning text-dark',
+                            'On Progress': 'bg-info',
+                            'Review': 'bg-primary',
+                            'Rejected': 'bg-danger',
+                            'Completed': 'bg-success'
+                        };
+                        $('#currentStatusBadge')
+                            .removeClass('bg-warning text-dark bg-info bg-success')
+                            .addClass(statusMap[response.new_status])
+                            .text(response.new_status);
+
+                        // 2. Update tombol dan pesan
+                        if (response.new_status === 'On Progress') {
+                            $('#btnOnProgress')
+                                .replaceWith(`
+                                    <button class="btn btn-success w-100" id="btnComplete">
+                                        <i class="fas fa-check me-2"></i> Selesaikan Tugas
+                                    </button>
+                                `);
+                            $('#statusMessage').html('<i class="fas fa-info-circle me-1"></i> Selesaikan tugas dengan mengubah status ke "Completed"');
+                        } else if (response.new_status === 'Completed') {
+                            $('#btnComplete')
+                                .replaceWith(`
+                                    <button class="btn btn-secondary w-100" disabled>
+                                        <i class="fas fa-check-circle me-2"></i> Selesai
+                                    </button>
+                                `);
+                            $('#statusMessage').html('<i class="fas fa-check-circle text-success me-1"></i> Tugas ini sudah selesai!');
+                        }
+
+                        // 3. Reload halaman agar tampilan card catatan dan riwayat otomatis update
+                        showToast(response.message, 'success');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast(response.message || 'Gagal update status', 'error');
+                        btn.prop('disabled', false).html(originalText);
                     }
-
-                    // 3. Reload halaman agar tampilan card catatan dan riwayat otomatis update
-                    showToast(response.message, 'success');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showToast(response.message || 'Gagal update status', 'error');
+                },
+                error: function(xhr) {
+                    console.error('❌ Error response:', xhr);
+                    let errorMsg = 'Terjadi kesalahan saat update status';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    showToast(errorMsg, 'error');
                     btn.prop('disabled', false).html(originalText);
                 }
-            },
-            error: function(xhr) {
-                console.error('❌ Error response:', xhr);
-                let errorMsg = 'Terjadi kesalahan saat update status';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                }
-                showToast(errorMsg, 'error');
-                btn.prop('disabled', false).html(originalText);
+            });
+        }
+
+        $(document).on('click', '#btnOnProgress', function() {
+            console.log('🔥 Tombol On Progress DIKLIK!');
+            if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
+                updateTaskStatus('On Progress');
             }
         });
-    }
 
-    $(document).on('click', '#btnOnProgress', function() {
-        console.log('🔥 Tombol On Progress DIKLIK!');
-        if (confirm('Apakah Anda yakin ingin mulai mengerjakan tugas ini?')) {
-            updateTaskStatus('On Progress');
-        }
-    });
-
-    // Tombol Mulai Review (dari On Progress)
-    $(document).on('click', '#btnReview', function() {
-        console.log('🔥 Tombol Review DIKLIK!');
-        if (confirm('Apakah Anda yakin ingin mengirim tugas ke review?')) {
-            updateTaskStatus('Review');
-        }
-    });
-
-    $(document).on('click', '#btnComplete', function(e) {
-        if (!$(this).data('handled')) {
-            $(this).data('handled', true);
-            console.log('🔥 Tombol Complete DIKLIK (delegasi)!');
-            if (confirm('Apakah Anda yakin tugas ini sudah selesai?')) {
-                updateTaskStatus('Completed');
+        // Tombol Mulai Review (dari On Progress)
+        $(document).on('click', '#btnReview', function() {
+            console.log('🔥 Tombol Review DIKLIK!');
+            if (confirm('Apakah Anda yakin ingin mengirim tugas ke review?')) {
+                updateTaskStatus('Review');
             }
-            setTimeout(() => $(this).data('handled', false), 500);
-        }
-    });
+        });
 
-    // ============================================================
-    // 5. SUBMIT CATATAN
-    // ============================================================
-    $('#submitNotesForm').on('submit', function(e) {
-        e.preventDefault();
-        console.log('📝 Form catatan disubmit');
+        $(document).on('click', '#btnComplete', function(e) {
+            if (!$(this).data('handled')) {
+                $(this).data('handled', true);
+                console.log('🔥 Tombol Complete DIKLIK (delegasi)!');
+                if (confirm('Apakah Anda yakin tugas ini sudah selesai?')) {
+                    updateTaskStatus('Completed');
+                }
+                setTimeout(() => $(this).data('handled', false), 500);
+            }
+        });
 
-        const form = $(this);
-        const btn = $('#submitNotesBtn');
-        const originalText = btn.html();
+        // 5. SUBMIT CATATAN
+        $('#submitNotesForm').on('submit', function(e) {
+            e.preventDefault();
+            console.log('📝 Form catatan disubmit');
 
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Mengirim...');
+            // Ambil form element
+            const form = this;
+            const formData = new FormData(form);
+            const btn = $('#submitNotesBtn');
+            const originalText = btn.html();
 
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                console.log('✅ Response submit catatan:', response);
-                if (response.success) {
-                    showToast(response.message || 'Catatan berhasil dikirim!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showToast('Gagal: ' + response.message, 'error');
+            // Disable button saat proses
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Mengirim...');
+
+            $.ajax({
+                url: $(form).attr('action'),
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log('✅ Response submit catatan:', response);
+                    if (response.success) {
+                        showToast(response.message || 'Catatan berhasil dikirim!', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showToast('Gagal: ' + response.message, 'error');
+                        btn.prop('disabled', false).html(originalText);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('❌ Error submit catatan:', xhr);
+                    let errorMsg = 'Terjadi kesalahan saat mengirim catatan';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    showToast(errorMsg, 'error');
                     btn.prop('disabled', false).html(originalText);
                 }
-            },
-            error: function(xhr) {
-                console.error('❌ Error submit catatan:', xhr);
-                let errorMsg = 'Terjadi kesalahan saat mengirim catatan';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
+            });
+        });
+
+        $('#files').on('change', function() {
+            const preview = $('#file-preview');
+            preview.empty();
+            const files = this.files;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.append(`
+                            <div class="preview-item">
+                                <img src="${e.target.result}" style="max-width:100px; max-height:100px; border-radius:8px; border:1px solid #ddd;">
+                                <div class="small text-muted">${file.name}</div>
+                            </div>
+                        `);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.append(`
+                        <div class="preview-item">
+                            <i class="fas fa-file fa-2x text-secondary"></i>
+                            <div class="small text-muted">${file.name}</div>
+                        </div>
+                    `);
                 }
-                showToast(errorMsg, 'error');
-                btn.prop('disabled', false).html(originalText);
             }
         });
-    });
 
-    console.log('✅ Semua event listener terpasang!');
-});
+        console.log('✅ Semua event listener terpasang!');
+    });
 </script>
 @endpush
