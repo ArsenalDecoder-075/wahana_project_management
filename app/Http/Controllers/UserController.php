@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Models\ReportSetting;
+use Illuminate\Support\Facades\Storage;
 use App\Models\TaskSubmission;
 use App\Models\SubmissionFile;
 use Illuminate\Support\Facades\Auth;
@@ -110,6 +111,7 @@ class UserController extends Controller
 
             // Tambahkan submission (pesan dari karyawan)
             $messages->push((object) [
+                'id' => $sub->id,
                 'type' => 'submission',
                 'user_name' => $user->name,
                 'message' => $submissionText,
@@ -117,7 +119,9 @@ class UserController extends Controller
                 'is_employee' => true,
                 'status' => $sub->status,
                 'reply_to' => null, // tidak ada reply
-                'files' => $sub->files, // ✅ tambahkan files ke object
+                'files' => $sub->files, // tambahkan files ke object
+                'is_deleted' => $sub->is_deleted,
+                'review_status' => $sub->review_status,
             ]);
 
             // Tambahkan review (feedback dari atasan)
@@ -448,6 +452,53 @@ class UserController extends Controller
             'success' => true,
             'message' => 'Catatan berhasil dikirim!',
             'data' => $submission
+        ]);
+    }
+
+    // Hapus task_submission
+    public function deleteSubmission(Request $request)
+    {
+        $request->validate([
+            'submission_id' => 'required|exists:task_submissions,id'
+        ]);
+
+        $submission = TaskSubmission::findOrFail($request->submission_id);
+
+        // Cek kepemilikan
+        if ($submission->employee_id != Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak berhak menghapus pesan ini.'], 403);
+        }
+
+        // Cek apakah sudah direview (gunakan aksesoris review_status)
+        if ($submission->review_status != 'pending') {
+            return response()->json(['success' => false, 'message' => 'Pesan sudah direview, tidak dapat dihapus.'], 422);
+        }
+
+        // Cek apakah sudah dihapus
+        if ($submission->is_deleted) {
+            return response()->json(['success' => false, 'message' => 'Pesan sudah dihapus.'], 422);
+        }
+
+        // Hapus file-file terkait
+        foreach ($submission->files as $file) {
+            // Hapus file fisik dari storage
+            if (Storage::disk('public')->exists($file->file_path)) {
+                Storage::disk('public')->delete($file->file_path);
+            }
+            // Hapus record
+            $file->delete();
+        }
+
+        // Update submission
+        $submission->update([
+            'is_deleted' => true,
+            'deleted_at' => now(),
+            'notes' => null // opsional, karena accessor akan mengembalikan "Pesan dihapus"
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pesan berhasil dihapus.'
         ]);
     }
 

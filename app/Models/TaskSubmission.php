@@ -6,7 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class TaskSubmission extends Model
 {
-    protected $fillable = ['task_id', 'employee_id', 'notes'];
+    // protected $fillable = ['task_id', 'employee_id', 'notes'];
+    protected $fillable = ['task_id', 'employee_id', 'notes', 'is_deleted', 'deleted_at'];
+
+    // Menentukan apakah ini kehapus
+    public function getNotesAttribute($value)
+    {
+        if ($this->is_deleted) {
+            return 'Pesan ini dihapus dihapus';
+        }
+        return $value;
+    }
 
     // public function task() {
     //     return $this->belongsTo(Task::class);
