@@ -391,7 +391,7 @@
                                                 <span class="chat-time">{{ $msg->created_at->format('d M Y, H:i') }}</span>
                                             </div>
                                             {{-- Tidak ada reply_to untuk submission --}}
-                                            <div class="chat-body">
+                                            <div class="chat-body {{ $msg->is_deleted ? 'text-muted fst-italic opacity-50' : '' }}">
                                                 {{ $msg->message }}
                                             </div>
                                             {{-- Bagian untuk tampilin gambar submission karyawan --}}
@@ -418,6 +418,16 @@
                                                             @endif
                                                         </div>
                                                     @endforeach
+                                                </div>
+                                            @endif
+                                            {{-- Tombol Hapus di bagian bawah --}}
+                                            @if(!$msg->is_deleted && $msg->review_status == 'pending')
+                                                <div class="mt-2 text-end">
+                                                    <button class="btn btn-sm btn-danger delete-submission-btn"
+                                                            data-id="{{ $msg->id }}"
+                                                            title="Hapus pesan">
+                                                        <i class="fas fa-trash me-1"></i> Hapus
+                                                    </button>
                                                 </div>
                                             @endif
                                         </div>
@@ -574,7 +584,12 @@
 
 {{-- Scripts --}}
 @push('scripts')
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
+
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -787,6 +802,43 @@
                     `);
                 }
             }
+        });
+
+        $(document).on('click', '.delete-submission-btn', function() {
+            const submissionId = $(this).data('id');
+            const btn = $(this);
+
+            if (!confirm('Apakah Anda yakin ingin menghapus pesan ini? Semua lampiran akan dihapus.')) {
+                return;
+            }
+
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+            $.ajax({
+                url: "{{ route('user.tasks.submission.delete') }}",
+                method: 'DELETE',
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    submission_id: submissionId
+                },
+                success: function(response) {
+                    console.log('✅ Response success:', response);
+                    if (response.success) {
+                        toastr.success(response.message);
+                        // 🔥 Langsung reload tanpa delay
+                        location.reload(true);
+                    } else {
+                        toastr.error(response.message);
+                        btn.prop('disabled', false).html('<i class="fas fa-trash"></i>');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('❌ Error:', xhr);
+                    let errorMsg = xhr.responseJSON?.message || 'Terjadi kesalahan';
+                    toastr.error(errorMsg);
+                    btn.prop('disabled', false).html('<i class="fas fa-trash"></i>');
+                }
+            });
         });
 
         console.log('✅ Semua event listener terpasang!');

@@ -55,6 +55,7 @@ Route::middleware(['auth', 'user-access:user'])->prefix('user')->name('user.')->
     // === Tugas ===
     Route::get('/tasks/{task}', [UserController::class, 'taskDetail'])->name('tasks.detail');
     Route::post('/tasks/submit-notes', [UserController::class, 'submitTaskNotes'])->name('tasks.submitNotes');
+    Route::delete('/user/submission/delete', [UserController::class, 'deleteSubmission'])->name('tasks.submission.delete');
 });
 
 /*------------------------------------------
