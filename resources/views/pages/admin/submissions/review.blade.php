@@ -28,90 +28,89 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row" style="display: flex; align-items: stretch;">
         {{-- KOLOM KIRI: Informasi + Statistik + Aksi Status --}}
-        <div class="col-lg-4">
-            {{-- Card Informasi Tugas --}}
-            <div class="card shadow-sm mb-4">
+        <div class="col-lg-4 d-flex flex-column">
+            {{-- Card Informasi Tugas & Statistik --}}
+            <div class="card shadow-sm mb-4 flex-shrink-0">
                 <div class="card-header bg-primary">
                     <h5 class="mb-0 text-white"><i class="fas fa-info-circle me-2"></i>Informasi Tugas</h5>
                 </div>
                 <div class="card-body">
+                    {{-- Judul & Deskripsi --}}
                     <div class="mb-3">
-                        <label class="text-muted small mb-1">Judul Tugas</label>
-                        <p class="fw-bold mb-0">{{ $task->title }}</p>
+                        <p class="fw-bold mb-1">{{ $task->title }}</p>
+                        <p class="text-muted mb-0">{{ $task->description ?? 'Tidak ada deskripsi' }}</p>
+                        <p class="text-muted small mt-1 mb-0">
+                            <i class="fas fa-user me-1"></i> Dikerjakan Oleh: <strong>{{ $task->assignee->name ?? '-' }}</strong>
+                        </p>
                     </div>
-                    <div class="mb-3">
-                        <label class="text-muted small mb-1">Deskripsi</label>
-                        <p class="mb-0">{{ $task->description ?? 'Tidak ada deskripsi' }}</p>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-6">
-                            <label class="text-muted small mb-1">Status</label>
-                            <span class="badge
-                                @if($task->status == 'Completed') bg-success
-                                @elseif($task->status == 'On Progress') bg-primary
-                                @elseif($task->status == 'Review') bg-warning text-dark
-                                @elseif($task->status == 'Rejected') bg-danger text-dark
-                                @else bg-secondary
-                                @endif
-                            ">
-                                {{ $task->status }}
-                            </span>
-                        </div>
-                        <div class="col-6">
-                            <label class="text-muted small mb-1">Deadline</label>
-                            <p class="mb-0">{{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}</p>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <label class="text-muted small mb-1">Prioritas</label>
-                            <span class="badge
-                                @if($task->priority == 'high') bg-danger
-                                @elseif($task->priority == 'medium') bg-warning text-dark
-                                @else bg-info
-                                @endif
-                            ">
-                                {{ strtoupper($task->priority ?? 'LOW') }}
-                            </span>
-                        </div>
-                        <div class="col-6">
-                            <label class="text-muted small mb-1">Karyawan</label>
-                            <p class="mb-0">{{ $task->assignee->name ?? '-' }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            {{-- Statistik Submission --}}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary">
-                    <h5 class="mb-0 text-white"><i class="fas fa-chart-bar me-2"></i>Statistik Submission</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Total Submission</span>
-                        <span class="badge bg-primary">{{ $submissions->count() }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Menunggu Review</span>
-                        <span class="badge bg-warning text-dark">
-                            {{ $submissions->filter(fn($s) => $s->review_status == 'pending')->count() }}
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Sudah direview</span>
-                        <span class="badge bg-success">
-                            {{ $submissions->filter(fn($s) => $s->review_status == 'accepted')->count() }}
-                        </span>
+                    {{-- Divider --}}
+                    <hr>
+
+                    {{-- Kiri (Status, Deadline, Prioritas) & Kanan (Statistik Submission) --}}
+                    <div class="row">
+                        {{-- Kolom Kiri --}}
+                        <div class="col-6">
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">Status</span>
+                                @php
+                                    $statusBadges = [
+                                        'Pending'     => '<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Pending</span>',
+                                        'On Progress' => '<span class="badge bg-info text-dark"><i class="fas fa-spinner fa-spin me-1"></i> On Progress</span>',
+                                        'Review'      => '<span class="badge bg-secondary text-white"><i class="fas fa-search me-1"></i> Review</span>',
+                                        'Completed'   => '<span class="badge bg-success text-white"><i class="fas fa-check-circle me-1"></i> Completed</span>',
+                                        'Rejected'    => '<span class="badge bg-danger text-white"><i class="fas fa-times-circle me-1"></i> Rejected</span>'
+                                    ];
+                                @endphp
+                                {!! $statusBadges[$task->status] ?? '<span class="badge bg-secondary text-white">' . $task->status . '</span>' !!}
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">Deadline</span>
+                                <span class="badge bg-dark text-white">
+                                    <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}
+                                </span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">Prioritas</span>
+                                @php
+                                    $priorityBadges = [
+                                        'high'   => '<span class="badge bg-danger text-white"><i class="fas fa-arrow-up me-1"></i> HIGH</span>',
+                                        'medium' => '<span class="badge bg-warning text-dark"><i class="fas fa-minus me-1"></i> MEDIUM</span>',
+                                        'low'    => '<span class="badge bg-info text-white"><i class="fas fa-arrow-down me-1"></i> LOW</span>'
+                                    ];
+                                @endphp
+                                {!! $priorityBadges[$task->priority] ?? '<span class="badge bg-secondary text-white">' . strtoupper($task->priority ?? 'LOW') . '</span>' !!}
+                            </div>
+                        </div>
+
+                        {{-- Kolom Kanan --}}
+                        <div class="col-6">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Total Pengajuan</span>
+                                <span class="fw-bold">{{ $submissions->count() }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Menunggu Review</span>
+                                <span class="fw-bold text-primary">
+                                    {{ $submissions->filter(fn($s) => $s->review_status == 'pending')->count() }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Sudah Direview</span>
+                                <span class="fw-bold text-success">
+                                    {{ $submissions->filter(fn($s) => $s->review_status == 'accepted')->count() }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {{-- Pelaksanaan Status Tugas (dua tombol) --}}
             @if(!in_array($task->status, ['Completed', 'Rejected']))
-            <div class="card shadow-sm">
+            <div class="card shadow-sm mb-4 flex-shrink-0">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Pelaksanaan Status Tugas</h5>
                 </div>
@@ -135,52 +134,49 @@
         </div>
 
         {{-- KOLOM KANAN: Riwayat Submission --}}
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success">
+        <div class="col-lg-8 d-flex">
+            <div class="card shadow-sm w-100 d-flex flex-column">
+                <div class="card-header bg-success flex-shrink-0">
                     <h5 class="mb-0 text-white"><i class="fas fa-file-alt me-2"></i>Riwayat Submission</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body flex-grow-1 overflow-auto" style="max-height: 600px;">
                     @foreach($submissions as $sub)
-                        {{-- @php
-                            $reviewStatus = $sub->review_status; // 'pending', 'approved', 'rejected'
-                            $borderClass = $reviewStatus === 'pending' ? 'border-warning' : ($reviewStatus === 'approved' ? 'border-success' : 'border-danger');
-                            $bgClass = $reviewStatus === 'pending' ? 'bg-warning bg-opacity-10' : ($reviewStatus === 'approved' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10');
-                            $badgeClass = $reviewStatus === 'pending' ? 'bg-warning text-dark' : ($reviewStatus === 'approved' ? 'bg-success' : 'bg-danger');
-                            $statusLabel = $reviewStatus === 'pending' ? 'Menunggu Review' : ($reviewStatus === 'approved' ? 'Disetujui' : 'Ditolak');
-                        @endphp --}}
                         @php
                             $reviewStatus = $sub->review_status;
                             $statusLabel = 'Unknown';
                             $badgeClass = 'bg-secondary';
                             $borderClass = 'border-secondary';
                             $bgClass = 'bg-secondary bg-opacity-10';
-                            $icon = 'question';
+                            // $icon = 'question';
 
                             if ($reviewStatus == 'pending') {
                                 $statusLabel = 'Menunggu Review';
-                                $badgeClass = 'bg-warning text-dark';
-                                $borderClass = 'border-warning';
-                                $bgClass = 'bg-warning bg-opacity-10';
-                                $icon = 'clock';
+                                $badgeClass = 'bg-info text-dark';
+                                $borderClass = 'border-info';
+                                $bgClass = 'bg-info bg-opacity-10';
+                                $textClass = 'text-dark';
+                                // $icon = 'clock';
                             } elseif ($reviewStatus == 'accepted') {
                                 $statusLabel = 'Sudah Direview';
                                 $badgeClass = 'bg-success';
                                 $borderClass = 'border-success';
                                 $bgClass = 'bg-success bg-opacity-10';
-                                $icon = 'check';
+                                $textClass = 'text-success';
+                                // $icon = 'check';
                             } elseif ($reviewStatus == 'rejected') {
                                 $statusLabel = 'Ditolak';
                                 $badgeClass = 'bg-danger';
                                 $borderClass = 'border-danger';
                                 $bgClass = 'bg-danger bg-opacity-10';
+                                $textClass = 'text-danger';
                                 $icon = 'times';
                             } elseif ($reviewStatus == 'revision needed') {
                                 $statusLabel = 'Revisi Diperlukan';
                                 $badgeClass = 'bg-warning text-dark';
                                 $borderClass = 'border-warning';
                                 $bgClass = 'bg-warning bg-opacity-10';
-                                $icon = 'undo';
+                                $textClass = 'text-warning';
+                                // $icon = 'undo';
                             }
                         @endphp
                         <div class="border rounded p-3 mb-3 {{ $borderClass }} {{ $bgClass }}">
@@ -190,7 +186,7 @@
                                     <div class="d-flex align-items-center mb-2 flex-wrap">
                                         <span class="fw-bold me-2">{{ $sub->created_at->format('d M Y, H:i') }}</span>
                                         <span class="badge {{ $badgeClass }}">
-                                            <i class="fas fa-{{ $reviewStatus === 'pending' ? 'clock' : ($reviewStatus === 'approved' ? 'check' : 'times') }} me-1"></i>
+                                            <i class="fas fa-{{ $reviewStatus === 'pending' ? 'clock' : ($reviewStatus === 'accepted' ? 'check' : 'times') }} me-1"></i>
                                             {{ $statusLabel }}
                                         </span>
                                     </div>
@@ -201,10 +197,35 @@
                                         <p class="mb-0">{{ $sub->notes ?? 'Tidak ada catatan' }}</p>
                                     </div>
 
+                                    {{-- Tampilan gambar kalo ada --}}
+                                    @if($sub->files->count() > 0)
+                                    <div class="mt-2">
+                                        <small class="fw-bold">Lampiran:</small>
+                                        <div class="d-flex flex-wrap gap-2 mt-1">
+                                            @foreach($sub->files as $file)
+                                                @php
+                                                    $isImage = in_array($file->mime_type, ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+                                                @endphp
+                                                @if($isImage)
+                                                    <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="d-inline-block">
+                                                        <img src="{{ asset('storage/' . $file->file_path) }}"
+                                                            alt="{{ $file->file_name }}"
+                                                            style="width: 100%; height: auto; max-width: 100%; border-radius: 8px; border: 1px solid #ddd; object-fit: contain;">
+                                                    </a>
+                                                @else
+                                                    <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-file me-1"></i> {{ $file->file_name }}
+                                                    </a>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+
                                     {{-- Feedback (jika sudah ada review) --}}
                                     @if($sub->latest_review)
                                         <div class="p-2 rounded" style="background: #f8f9fa; border-right: 4px solid #28a745;">
-                                            <small class="fw-bold text-success">Feedback:</small>
+                                            <small class="fw-bold {{ $textClass }}">Feedback:</small>
                                             <p class="mb-1">{{ $sub->latest_review->feedback_notes ?? 'Tidak ada catatan' }}</p>
                                             <small class="text-muted">
                                                 Oleh: {{ $sub->latest_review->reviewer->name ?? 'Unknown' }}
@@ -229,6 +250,11 @@
                                                             data-id="{{ $sub->id }}"
                                                             data-status="accepted">
                                                         <i class="fas fa-check me-1"></i> Setujui
+                                                    </button>
+                                                    <button class="btn btn-sm btn-warning submit-feedback-btn"
+                                                            data-id="{{ $sub->id }}"
+                                                            data-status="revision needed">
+                                                        <i class="fas fa-check me-1"></i> Butuh Revisi
                                                     </button>
                                                     <button class="btn btn-sm btn-danger submit-feedback-btn"
                                                             data-id="{{ $sub->id }}"
