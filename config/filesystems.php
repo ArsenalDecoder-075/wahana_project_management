@@ -56,6 +56,18 @@ return [
             'throw' => false,
         ],
 
+        'obs' => [
+            'driver' => 'obs',
+            'access_key' => env('OBS_ACCESS_KEY'),
+            'access_secret' => env('OBS_SECRET_ACCESS'),
+            'endpoint' => env('OBS_ENDPOINT'),
+            'bucket' => env('OBS_BUCKET'),
+            'region' => env('OBS_REGION', 'ap-southeast-3'),
+            'domain' => env('OBS_ENDPOINT'), // Add this line
+            'ssl' => env('OBS_SSL_VERIFY', false),
+            'guzzle' => [],
+        ],
+
     ],
 
     /*

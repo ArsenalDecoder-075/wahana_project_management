@@ -13,14 +13,11 @@ class TaskSubmission extends Model
     public function getNotesAttribute($value)
     {
         if ($this->is_deleted) {
-            return 'Pesan ini dihapus dihapus';
+            return 'Pesan ini dihapus oleh karyawan.';
         }
         return $value;
     }
 
-    // public function task() {
-    //     return $this->belongsTo(Task::class);
-    // }
     public function task()
     {
         return $this->belongsTo(Task::class, 'task_id');

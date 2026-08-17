@@ -13,11 +13,23 @@ use App\Models\TaskSubmission;
 use App\Models\SubmissionFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Services\HuaweiObsService;
+use App\Services\MediaProcessorService;
+use Illuminate\Support\Facades\Log;
+
 
 
 
 class UserController extends Controller
 {
+    protected $obsService;
+    protected $mediaProcessor;
+
+    public function __construct(HuaweiObsService $obsService, MediaProcessorService $mediaProcessor)
+    {
+        $this->obsService = $obsService;
+        $this->mediaProcessor = $mediaProcessor;
+    }
 
     /*------------------------------------------
     Dashboard User (menampilkan daftar proyek)
@@ -407,24 +419,71 @@ class UserController extends Controller
     }
 
     // Upload file bukti / submission files
+    // public function submitTaskNotes(Request $request)
+    // {
+    //     $request->validate([
+    //         'task_id' => 'required|exists:tasks,id',
+    //         'notes' => 'nullable|string|max:1000',
+    //         'files.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:5120',
+    //     ]);
+
+    //     $task = Task::findOrFail($request->task_id);
+
+    //     if ($task->assigned_to != Auth::id()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Anda tidak memiliki akses untuk tugas ini.'
+    //         ], 403);
+    //     }
+
+    //     // Buat submission
+    //     $submission = TaskSubmission::create([
+    //         'task_id' => $task->id,
+    //         'employee_id' => Auth::id(),
+    //         'notes' => $request->notes,
+    //         'status' => 'pending'
+    //     ]);
+
+    //     // Upload file jika ada
+    //     if ($request->hasFile('files')) {
+    //         foreach ($request->file('files') as $file) {
+    //             // Simpan di storage/public/submissions
+    //             $path = $file->store('submissions', 'public');
+
+    //             SubmissionFile::create([
+    //                 'submission_id' => $submission->id,
+    //                 'file_path' => $path,
+    //                 'file_name' => $file->getClientOriginalName(),
+    //                 'mime_type' => $file->getMimeType(),
+    //                 'size' => $file->getSize(),
+    //             ]);
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Catatan berhasil dikirim!',
+    //         'data' => $submission
+    //     ]);
+    // }
+
+    // Upload ke obs (local kalo gk bisa)
     public function submitTaskNotes(Request $request)
     {
         $request->validate([
             'task_id' => 'required|exists:tasks,id',
             'notes' => 'nullable|string|max:1000',
-            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:5120',
+            // 'files.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:5120',
+            'files.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,csv,ppt,pptx|max:5120',
         ]);
 
         $task = Task::findOrFail($request->task_id);
 
         if ($task->assigned_to != Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses untuk tugas ini.'
-            ], 403);
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk tugas ini.'], 403);
         }
 
-        // Buat submission
+        // 1. Buat submission
         $submission = TaskSubmission::create([
             'task_id' => $task->id,
             'employee_id' => Auth::id(),
@@ -432,17 +491,26 @@ class UserController extends Controller
             'status' => 'pending'
         ]);
 
-        // Upload file jika ada
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                // Simpan di storage/public/submissions
-                $path = $file->store('submissions', 'public');
+                $mime = $file->getMimeType();
+
+                // Jika gambar → proses kompresi
+                if (str_starts_with($mime, 'image/')) {
+                    $result = $this->mediaProcessor->processImage($file, 'submissions');
+                    $path = $result['path'];
+                } else {
+                    // Dokumen (PDF, DOC, XLS, dll) → upload langsung
+                    $key = 'submissions/' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $uploadResult = $this->obsService->uploadFile($key, $file->getRealPath());
+                    $path = $uploadResult['success'] ? $key : $file->store('submissions', 'public');
+                }
 
                 SubmissionFile::create([
                     'submission_id' => $submission->id,
                     'file_path' => $path,
                     'file_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getMimeType(),
+                    'mime_type' => $mime,
                     'size' => $file->getSize(),
                 ]);
             }
@@ -479,13 +547,22 @@ class UserController extends Controller
             return response()->json(['success' => false, 'message' => 'Pesan sudah dihapus.'], 422);
         }
 
-        // Hapus file-file terkait
+         // Hapus file-file terkait
         foreach ($submission->files as $file) {
-            // Hapus file fisik dari storage
+            // Coba hapus dari lokal terlebih dahulu
             if (Storage::disk('public')->exists($file->file_path)) {
                 Storage::disk('public')->delete($file->file_path);
+            } else {
+                // Kalo gk ada di lokal, asumsikan di OBS
+                try {
+                    $this->obsService->deleteFile($file->file_path);
+                } catch (\Exception $e) {
+                    // Log error tapi lanjutkan (file mungkin sudah terhapus atau service error)
+                    Log::warning('Gagal hapus file dari OBS: ' . $e->getMessage(), ['file_path' => $file->file_path]);
+                }
             }
-            // Hapus record
+
+            // Hapus record dari database
             $file->delete();
         }
 
