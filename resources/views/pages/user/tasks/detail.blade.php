@@ -403,8 +403,8 @@
                                                                 $isImage = in_array($file->mime_type, ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
                                                             @endphp
                                                             @if($isImage)
-                                                                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" title="{{ $file->file_name }}" style="display: block; width: 100%;">
-                                                                    <img src="{{ asset('storage/' . $file->file_path) }}"
+                                                                <a href="{{ $file->url }}" target="_blank" title="{{ $file->file_name }}" style="display: block; width: 100%;">
+                                                                    <img src="{{ $file->url }}"
                                                                         alt="{{ $file->file_name }}"
                                                                         style="width: 100%; height: auto; max-width: 100%; border-radius: 8px; border: 1px solid #ddd; object-fit: contain;">
                                                                 </a>
@@ -412,8 +412,14 @@
                                                                     <i class="fas fa-image me-1"></i> {{ $file->file_name }}
                                                                 </div>
                                                             @else
-                                                                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                                    <i class="fas fa-file me-1"></i> {{ $file->file_name }}
+                                                                @php
+                                                                    $icon = 'fa-file';
+                                                                    if (str_contains($file->mime_type, 'pdf')) $icon = 'fa-file-pdf';
+                                                                    elseif (str_contains($file->mime_type, 'word')) $icon = 'fa-file-word';
+                                                                    elseif (str_contains($file->mime_type, 'excel') || str_contains($file->mime_type, 'spreadsheet')) $icon = 'fa-file-excel';
+                                                                @endphp
+                                                                <a href="{{ $file->url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                                    <i class="fas {{ $icon }} me-1"></i> {{ $file->file_name }}
                                                                 </a>
                                                             @endif
                                                         </div>
@@ -533,7 +539,6 @@
                                 <small class="text-muted">Dikirim: {{ $submission->created_at->format('d M Y H:i') }}</small>
                             </div>
                         @else
-                            {{-- <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}"> --}}
                             <form id="submitNotesForm" method="POST" action="{{ route('user.tasks.submitNotes') }}" enctype="multipart/form-data">
                                 @csrf
                                 <input type="hidden" name="task_id" value="{{ $task->id }}">
@@ -546,11 +551,11 @@
                                         <i class="fas fa-paperclip me-1"></i> Lampiran (opsional)
                                     </label>
                                     <input type="file"
-                                           class="form-control"
-                                           id="files"
-                                           name="files[]"
-                                           multiple
-                                           accept="image/*,.pdf,.doc,.docx">
+                                        class="form-control"
+                                        id="files"
+                                        name="files[]"
+                                        multiple
+                                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv">
                                     <small class="text-muted">
                                         Format: JPG, PNG, GIF, WebP, PDF, DOC, DOCX. Maksimal 5MB per file.
                                     </small>
