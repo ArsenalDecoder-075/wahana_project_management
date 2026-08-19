@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\HuaweiObsService;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 
 class SubmissionFile extends Model
@@ -25,19 +26,29 @@ class SubmissionFile extends Model
     // Helper untuk mendapatkan URL lengkap
     public function getUrlAttribute()
     {
-        // First check if the file exists in local storage
-        if (Storage::disk('public')->exists($this->file_path)) {
-            return asset('storage/' . $this->file_path);
+        $cleanPath = $this->file_path;
+
+        if (filter_var($this->file_path, FILTER_VALIDATE_URL)) {
+            return $this->file_path;
         }
 
-        // If not local, assume it's in OBS and generate temporary URL
+        $relativePath = ltrim(str_replace('/storage/', '', $cleanPath), '/');
+
+        if (Storage::disk('public')->exists($relativePath)) {
+            return asset('storage/' . $relativePath);
+        }
+
         try {
             $obs = app(HuaweiObsService::class);
-            return $obs->getTempUrl($this->file_path, 3600);
+            $obsUrl = $obs->getTempUrl($relativePath, 3600);
+            if ($obsUrl) {
+                return $obsUrl;
+            }
         } catch (\Exception $e) {
-            // Fallback to local asset as a last resort? Or return a placeholder.
-            return asset('storage/' . $this->file_path);
+            Log::warning('Failed to generate OBS URL', ['path' => $relativePath, 'error' => $e->getMessage()]);
         }
+
+        return asset('storage/' . $relativePath);
     }
 
     // Cek apakah file adalah gambar

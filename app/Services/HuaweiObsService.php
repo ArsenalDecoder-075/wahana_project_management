@@ -116,77 +116,6 @@ class HuaweiObsService
         }
     }
 
-    /**
-     * Generate Signed URL dengan memaksa Browser untuk Preview (Inline)
-     * dan memperbaiki Content-Type untuk file lama.
-     */
-    // public function getTempUrl($fullUrlOrKey, $expires = 3600)
-    // {
-    //     if (!$this->isConfigured) {
-    //         return $fullUrlOrKey;
-    //     }
-
-    //     try {
-    //         // 1. Ambil Key dari URL
-    //         $key = $fullUrlOrKey;
-    //         if (filter_var($fullUrlOrKey, FILTER_VALIDATE_URL)) {
-    //             $parsed = parse_url($fullUrlOrKey);
-    //             $key = ltrim($parsed['path'] ?? '', '/');
-    //         }
-
-    //         // 2. Deteksi Content-Type manual berdasarkan akhiran nama file (Extension)
-    //         // Ini PENTING agar file lama yang "corrupt" header-nya tetap bisa di-preview
-    //         $extension = strtolower(pathinfo($key, PATHINFO_EXTENSION));
-    //         $contentType = 'application/octet-stream'; // Default
-
-    //         switch ($extension) {
-    //             case 'jpg':
-    //             case 'jpeg':
-    //                 $contentType = 'image/jpeg';
-    //                 break;
-    //             case 'png':
-    //                 $contentType = 'image/png';
-    //                 break;
-    //             case 'gif':
-    //                 $contentType = 'image/gif';
-    //                 break;
-    //             case 'pdf':
-    //                 $contentType = 'application/pdf';
-    //                 break;
-    //             case 'mp4':
-    //                 $contentType = 'video/mp4';
-    //                 break;
-    //             case 'mov':
-    //                 $contentType = 'video/quicktime';
-    //                 break;
-    //             case 'avi':
-    //                 $contentType = 'video/x-msvideo';
-    //                 break;
-    //         }
-
-    //         // 3. Masukkan parameter untuk preview inline di browser
-    //         $filename = basename($key);
-    //         $queryParams = [
-    //             'response-content-type' => $contentType,
-    //             'response-content-disposition' => 'inline; filename="' . $filename . '"'
-    //         ];
-
-    //         // 4. Buat URL
-    //         $response = $this->obsClient->createSignedUrl([
-    //             'Method'      => 'GET',
-    //             'Bucket'      => $this->bucketName,
-    //             'Key'         => $key,
-    //             'Expires'     => $expires,
-    //             'QueryParams' => $queryParams
-    //         ]);
-
-    //         return $response['SignedUrl'];
-    //     } catch (ObsException $e) {
-    //         return $fullUrlOrKey;
-    //     }
-    // }
-
-
     public function getTempUrl($key, $expires = 3600)
     {
         if (!$this->isConfigured) {
@@ -198,7 +127,7 @@ class HuaweiObsService
                 'Method' => 'GET',
                 'Bucket' => $this->bucketName,
                 'Key' => $key,
-                'Expires' => $expires, // seconds
+                'Expires' => $expires,
             ]);
             return $response['SignedUrl'];
         } catch (ObsException $e) {

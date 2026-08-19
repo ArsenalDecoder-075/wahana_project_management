@@ -112,9 +112,7 @@ class UserController extends Controller
 
         $submission = $task->submissions->last();
 
-        // ============================================================
         // BUAT KOLEKSI PESAN TERURUT (Submission + Review)
-        // ============================================================
         $messages = collect();
 
         foreach ($task->submissions as $sub) {
@@ -500,10 +498,8 @@ class UserController extends Controller
                     $result = $this->mediaProcessor->processImage($file, 'submissions');
                     $path = $result['path'];
                 } else {
-                    // Dokumen (PDF, DOC, XLS, dll) → upload langsung
-                    $key = 'submissions/' . uniqid() . '.' . $file->getClientOriginalExtension();
-                    $uploadResult = $this->obsService->uploadFile($key, $file->getRealPath());
-                    $path = $uploadResult['success'] ? $key : $file->store('submissions', 'public');
+                    $result = $this->mediaProcessor->storeDocument($file, 'submissions');
+                    $path = $result['path'];
                 }
 
                 SubmissionFile::create([

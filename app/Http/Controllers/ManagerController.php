@@ -137,7 +137,9 @@ class ManagerController extends Controller
                 'status' => $task->status,
                 'priority' => $task->priority,
                 'deadline' => $task->deadline,
-                'time' => $task->created_at->format('H:i')
+                // 'time' => $task->created_at->format('H:i')
+                'time' => $task->created_at ? $task->created_at->format('H:i') : '-'
+
             ];
         }
 
@@ -280,42 +282,53 @@ class ManagerController extends Controller
         $managerId = Auth::id();
 
         $request->validate([
-            'employee_id' => 'required|exists:users,id',
-            // manager_id tidak perlu divalidasi karena otomatis dari session
+            'employee_ids' => 'required|array|min:1',
+            'employee_ids.*' => 'required|exists:users,id',
         ]);
 
-        // Cek apakah employee sudah punya manager
+        $employeeIds = $request->input('employee_ids', []);
+
         $existing = DB::table('manager_employees')
-            ->where('employee_id', $request->employee_id)
-            ->first();
+            ->whereIn('employee_id', $employeeIds)
+            ->where('manager_id', $managerId)
+            ->pluck('employee_id')
+            ->toArray();
 
-        if ($existing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Karyawan ini sudah memiliki manajer!'
-            ], 422);
-        }
+        $newIds = array_diff($employeeIds, $existing);
 
-        // Cek apakah employee adalah tipe user (bukan admin/manager)
-        $employee = User::find($request->employee_id);
-        if ($employee->type != 0) {
+        $employees = User::whereIn('id', $newIds)->get();
+        $invalid = $employees->filter(fn($e) => $e->type != 0);
+
+        if ($invalid->isNotEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya karyawan (type 0) yang bisa menjadi bawahan!'
             ], 422);
         }
 
-        // Tambahkan ke tabel manager_employees dengan manager_id = user yang login
-        DB::table('manager_employees')->insert([
-            'employee_id' => $request->employee_id,
-            'manager_id' => $managerId, // ✅ Otomatis pakai manager yang login
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+        $now = now();
+        $insertData = [];
+        foreach ($newIds as $empId) {
+            $insertData[] = [
+                'employee_id' => $empId,
+                'manager_id' => $managerId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if (!empty($insertData)) {
+            DB::table('manager_employees')->insert($insertData);
+        }
+
+        $count = count($newIds);
+        $message = $count > 0
+            ? "{$count} karyawan berhasil ditambahkan sebagai bawahan!"
+            : 'Semua karyawan yang dipilih sudah memiliki manajer.';
 
         return response()->json([
-            'success' => true,
-            'message' => 'Karyawan berhasil ditambahkan sebagai bawahan!'
+            'success' => $count > 0,
+            'message' => $message
         ]);
     }
 

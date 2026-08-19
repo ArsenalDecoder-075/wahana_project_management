@@ -77,20 +77,24 @@
                                 <small class="text-muted">Anda akan menjadi atasan dari karyawan yang dipilih.</small>
                             </div>
                             <div class="mb-3">
-                                <label for="employee_id" class="form-label">Pilih Karyawan <span class="text-danger">*</span></label>
-                                <select class="form-select select2" name="employee_id" id="employee_id" required>
-                                    <option selected disabled value="">Pilih Karyawan</option>
-                                    @foreach ($availableEmployees as $emp)
-                                        <option value="{{ $emp->id }}">
-                                            {{ $emp->name }}
-                                            @if($emp->branch)
-                                                ({{ $emp->branch->name }})
-                                            @else
-                                                (Tanpa Cabang)
-                                            @endif
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <label class="form-label">Pilih Karyawan <span class="text-danger">*</span></label>
+                                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px;">
+                                    @forelse ($availableEmployees as $emp)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="employee_ids[]" value="{{ $emp->id }}" id="emp_{{ $emp->id }}">
+                                            <label class="form-check-label" for="emp_{{ $emp->id }}">
+                                                {{ $emp->name }}
+                                                @if($emp->branch)
+                                                    <small class="text-muted">({{ $emp->branch->name }})</small>
+                                                @else
+                                                    <small class="text-muted">(Tanpa Cabang)</small>
+                                                @endif
+                                            </label>
+                                        </div>
+                                    @empty
+                                        <p class="text-muted mb-0">Tidak ada karyawan tersedia.</p>
+                                    @endforelse
+                                </div>
                                 <small class="text-muted">Hanya menampilkan karyawan yang belum memiliki manajer.</small>
                             </div>
                         </div>
