@@ -278,6 +278,12 @@
                                         @elseif($task->status == 'Completed') bg-success
                                         @endif
                                         fs-6" id="currentStatusBadge">
+                                        @if($task->status == 'Pending')<i class="fas fa-clock me-1"></i>
+                                        @elseif($task->status == 'On Progress')<i class="fas fa-spinner me-1"></i>
+                                        @elseif($task->status == 'Review')<i class="fa-solid fa-magnifying-glass"></i>
+                                        @elseif($task->status == 'Completed')<i class="fas fa-check me-1"></i>
+                                        @elseif($task->status == 'Rejected')<i class="fa-regular fa-circle-xmark"></i>
+                                        @endif
                                         {{ $task->status }}
                                     </span>
                                 </div>
@@ -286,13 +292,13 @@
                                 <div class="mb-2">
                                     <span class="text-muted">Prioritas:</span>
                                     @php
-                                        $priorityColors = ['low' => 'info','medium' => 'warning','high' => 'danger'];
-                                        $priorityText = ['low' => 'LOW','medium' => 'MEDIUM','high' => 'HIGH'];
-                                        $priorityTextColors = ['low' => 'text-dark','medium' => 'text-dark','high' => 'text-white'];
+                                        $badges = [
+                                            'high'   => '<span class="badge bg-danger"><i class="fas fa-arrow-up"></i> HIGH</span>',
+                                            'medium' => '<span class="badge bg-warning text-dark"><i class="fas fa-minus"></i> MEDIUM</span>',
+                                            'low'    => '<span class="badge bg-info"><i class="fas fa-arrow-down"></i> LOW</span>'
+                                        ];
                                     @endphp
-                                    <span class="badge bg-{{ $priorityColors[$task->priority] ?? 'secondary' }} {{ $priorityTextColors[$task->priority] ?? '' }}">
-                                        {{ $priorityText[$task->priority] ?? '-' }}
-                                    </span>
+                                    {!! $badges[$task->priority] ?? '<span class="badge bg-secondary">-</span>' !!}
                                 </div>
 
                                 {{-- Deadline --}}
@@ -675,19 +681,19 @@
                         // 2. Update tombol dan pesan
                         if (response.new_status === 'On Progress') {
                             $('#btnOnProgress')
-                                .replaceWith(`
-                                    <button class="btn btn-success w-100" id="btnComplete">
-                                        <i class="fas fa-check me-2"></i> Selesaikan Tugas
-                                    </button>
-                                `);
+                                // .replaceWith(`
+                                //     <button class="btn btn-success w-100" id="btnComplete">
+                                //         <i class="fas fa-check me-2"></i> Selesaikan Tugas
+                                //     </button>
+                                // `);
                             $('#statusMessage').html('<i class="fas fa-info-circle me-1"></i> Selesaikan tugas dengan mengubah status ke "Completed"');
                         } else if (response.new_status === 'Completed') {
                             $('#btnComplete')
-                                .replaceWith(`
-                                    <button class="btn btn-secondary w-100" disabled>
-                                        <i class="fas fa-check-circle me-2"></i> Selesai
-                                    </button>
-                                `);
+                                // .replaceWith(`
+                                //     <button class="btn btn-secondary w-100" disabled>
+                                //         <i class="fas fa-check-circle me-2"></i> Selesai
+                                //     </button>
+                                // `);
                             $('#statusMessage').html('<i class="fas fa-check-circle text-success me-1"></i> Tugas ini sudah selesai!');
                         }
 

@@ -871,18 +871,45 @@ class AdminController extends Controller
     public function storeHierarchy(Request $request)
     {
         $request->validate([
-            'employee_id' => 'required|exists:users,id',
-            'manager_id'  => 'required|exists:users,id',
+            'manager_id' => 'required|exists:users,id',
+            'employee_ids' => 'required|array|min:1',
+            'employee_ids.*' => 'required|exists:users,id',
         ]);
 
-        DB::table('manager_employees')->updateOrInsert(
-            ['employee_id' => $request->employee_id], // Kondisi pengecekan (Karyawan)
-            ['manager_id' => $request->manager_id, 'updated_at' => now()] // Data yang dimasukkan/diubah
-        );
+        $managerId = $request->manager_id;
+        $employeeIds = $request->input('employee_ids', []);
+
+        $existing = DB::table('manager_employees')
+            ->whereIn('employee_id', $employeeIds)
+            ->where('manager_id', $managerId)
+            ->pluck('employee_id')
+            ->toArray();
+
+        $newIds = array_diff($employeeIds, $existing);
+
+        $now = now();
+        $insertData = [];
+        foreach ($newIds as $empId) {
+            $insertData[] = [
+                'employee_id' => $empId,
+                'manager_id' => $managerId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if (!empty($insertData)) {
+            DB::table('manager_employees')->insert($insertData);
+        }
+
+        $count = count($newIds);
+        $message = $count > 0
+            ? "{$count} karyawan berhasil ditugaskan ke manajer tersebut!"
+            : 'Semua karyawan yang dipilih sudah berada di bawah manajer tersebut.';
 
         return response()->json([
-            'success' => true,
-            'message' => 'Manajer berhasil ditugaskan ke karyawan tersebut!'
+            'success' => $count > 0,
+            'message' => $message
         ]);
     }
 

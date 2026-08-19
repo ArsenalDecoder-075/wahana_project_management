@@ -68,13 +68,13 @@
                                         </td>
                                         <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
                                             @php
-                                                $priorityColors = ['low' => 'info','medium' => 'warning','high' => 'danger'];
-                                                $priorityText = ['low' => 'LOW','medium' => 'MEDIUM','high' => 'HIGH'];
-                                                $priorityTextColors = ['low' => 'text-dark','medium' => 'text-dark','high' => 'text-white'];
+                                                $badges = [
+                                                    'high'   => '<span class="badge text-bold bg-danger"><i class="fas fa-arrow-up"></i> HIGH</span>',
+                                                    'medium' => '<span class="badge text-bold bg-warning text-dark"><i class="fas fa-minus"></i> MEDIUM</span>',
+                                                    'low'    => '<span class="badge text-bold bg-info"><i class="fas fa-arrow-down"></i> LOW</span>'
+                                                ];
                                             @endphp
-                                            <span class="badge text-bold bg-{{ $priorityColors[$task->priority] ?? 'secondary' }} {{ $priorityTextColors[$task->priority] ?? '' }}">
-                                                {{ $priorityText[$task->priority] ?? '' }}
-                                            </span>
+                                            {!! $badges[$task->priority] ?? '<span class="badge text-bold bg-secondary">-</span>' !!}
                                         </td>
                                         <td style="text-align: center; padding: 12px 8px; border: 1px solid #dee2e6;">
                                             @php
@@ -102,6 +102,10 @@
                                             @elseif($task->status == 'On Progress')
                                                 <span class="badge bg-info" style="padding: 6px 12px;">
                                                     <i class="fas fa-spinner me-1"></i> On Progress
+                                                </span>
+                                            @elseif($task->status == 'Review')
+                                                <span class="badge bg-secondary" style="padding: 6px 12px;">
+                                                    <i class="fa-solid fa-magnifying-glass"></i> Review
                                                 </span>
                                             @elseif($task->status == 'Completed')
                                                 <span class="badge bg-success" style="padding: 6px 12px;">
