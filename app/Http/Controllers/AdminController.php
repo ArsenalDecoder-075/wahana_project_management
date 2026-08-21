@@ -1209,6 +1209,23 @@ class AdminController extends Controller
             ->pluck('total', 'assigned_to')
             ->toArray();
 
+        // ✅ AJAX untuk Kanban (ambil semua tugas tanpa paginasi, field mentah)
+        if ($request->ajax() && $request->has('kanban')) {
+            $tasks = Task::with('assignee')
+                ->where('project_id', $project_id)
+                ->get();
+
+            return response()->json($tasks->map(function ($task) {
+                return [
+                    'id'            => $task->id,
+                    'title'         => $task->title,
+                    'status'        => $task->status,
+                    'priority'      => $task->priority,
+                    'employee_name' => $task->assignee ? $task->assignee->name : 'Tidak Ada',
+                ];
+            }));
+        }
+
         // ✅ AJAX untuk DataTables
         if ($request->ajax()) {
             $tasks = Task::with(['assignee'])
@@ -1343,6 +1360,46 @@ class AdminController extends Controller
             'employeeTaskCounts',
             'totalCompleted'
         ));
+    }
+
+    public function kanbanView(Request $request)
+    {
+        // Admin dapat mengakses semua proyek
+        $projects = Project::with(['manager', 'category'])
+            ->orderBy('title')
+            ->get();
+
+        return view('pages.admin.kanban', compact('projects'));
+    }
+
+    public function kanbanTasks(Request $request)
+    {
+        $request->validate([
+            'project_ids' => 'required|array',
+            'project_ids.*' => 'exists:projects,id',
+        ]);
+
+        $tasks = Task::with(['assignee', 'project'])
+            ->whereIn('project_id', $request->project_ids)
+            ->get();
+
+        $tasksData = $tasks->map(function ($task) {
+            return [
+                'id'           => $task->id,
+                'title'        => $task->title,
+                'description'  => $task->description,
+                'status'       => $task->status,
+                'priority'     => $task->priority,
+                'employee_name'=> $task->assignee ? $task->assignee->name : 'Tidak Ada',
+                'project_id'   => $task->project_id,
+                'project_name' => $task->project ? $task->project->title : '-',
+                'duration'     => $task->start_date && $task->deadline
+                    ? Carbon::parse($task->start_date)->diffInDays(Carbon::parse($task->deadline)) + 1 . ' hari'
+                    : '-',
+            ];
+        });
+
+        return response()->json($tasksData);
     }
 
     public function storeTask(Request $request)
