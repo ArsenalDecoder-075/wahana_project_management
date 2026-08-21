@@ -57,4 +57,11 @@
             <span class="text">Calender</span>
         </a>
     </li>
+
+    <li class="nav-item @if (request()->routeIs('admin.kanban')) active @endif">
+        <a href="{{ route('admin.kanban') }}">
+            <span class="icon"><i class="fa-solid fa-columns"></i></span>
+            <span class="text">Kanban Tugas</span>
+        </a>
+    </li>
 </ul>

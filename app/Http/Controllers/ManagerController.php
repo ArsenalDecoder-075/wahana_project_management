@@ -1289,7 +1289,57 @@ class ManagerController extends Controller
         return $rows;
     }
 
+    
 
+    public function kanbanView(Request $request)
+    {
+        $managerId = Auth::id();
+
+        // Manager hanya dapat melihat proyek yang mereka kelola
+        $projects = Project::where('manager_id', $managerId)
+            ->with(['manager', 'category'])
+            ->orderBy('title')
+            ->get();
+
+        return view('pages.manager.kanban', compact('projects'));
+    }
+
+    public function kanbanTasks(Request $request)
+    {
+        $managerId = Auth::id();
+
+        $request->validate([
+            'project_ids' => 'required|array',
+            'project_ids.*' => 'exists:projects,id',
+        ]);
+
+        // Pastikan hanya project milik manager yang bisa diambil
+        $projects = Project::where('manager_id', $managerId)
+            ->whereIn('id', $request->project_ids)
+            ->pluck('id');
+
+        $tasks = Task::with(['assignee', 'project'])
+            ->whereIn('project_id', $projects)
+            ->get();
+
+        $tasksData = $tasks->map(function ($task) {
+            return [
+                'id'           => $task->id,
+                'title'        => $task->title,
+                'description'  => $task->description,
+                'status'       => $task->status,
+                'priority'     => $task->priority,
+                'employee_name'=> $task->assignee ? $task->assignee->name : 'Tidak Ada',
+                'project_id'   => $task->project_id,
+                'project_name' => $task->project ? $task->project->title : '-',
+                'duration'     => $task->start_date && $task->deadline
+                    ? Carbon::parse($task->start_date)->diffInDays(Carbon::parse($task->deadline)) + 1 . ' hari'
+                    : '-',
+            ];
+        });
+
+        return response()->json($tasksData);
+    }
 
 
 

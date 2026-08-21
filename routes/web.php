@@ -103,6 +103,10 @@ Route::middleware(['auth', 'user-access:admin'])->prefix('admin')->name('admin.'
     // Halaman kelola tugas spesifik untuk satu proyek
     Route::get('/projects/{project_id}/tasks', [AdminController::class, 'manageTasks'])->name('tasks.manage');
 
+    // Halaman Kanban mandiri (semua proyek yang bisa diakses admin)
+    Route::get('/kanban', [AdminController::class, 'kanbanView'])->name('kanban');
+    Route::post('/kanban/tasks', [AdminController::class, 'kanbanTasks'])->name('kanban.tasks');
+
     // CRUD Tugas
     Route::post('/tasks/store', [AdminController::class, 'storeTask'])->name('tasks.store');
     Route::post('/tasks/update', [AdminController::class, 'updateTask'])->name('tasks.update');
@@ -190,4 +194,8 @@ Route::middleware(['auth', 'user-access:manager'])->prefix('manager')->name('man
 
     Route::get('/calendar', [ManagerController::class, 'calendar'])->name('calendar');
     Route::get('/calendar/data', [ManagerController::class, 'calendarData'])->name('calendar.data');
+
+    // Route kanban
+    Route::get('/kanban', [ManagerController::class, 'kanbanView'])->name('kanban');
+    Route::post('/kanban/tasks', [ManagerController::class, 'kanbanTasks'])->name('kanban.tasks');
 });

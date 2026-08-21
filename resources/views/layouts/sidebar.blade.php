@@ -1,8 +1,8 @@
 <div class="sidebar-wrapper">
     <ul>
         {{-- Dashboard --}}
-        <li class="nav-item @if (request()->routeIs('manager.dashboard')) active @endif">
-            <a href="{{ route('admin.home') }}">
+        <li class="nav-item @if (request()->routeIs('user.dashboard')) active @endif">
+            <a href="{{ route('user.dashboard') }}">
                 <span class="icon">
                     <svg width="22" height="22" viewBox="0 0 22 22">
                         <path
